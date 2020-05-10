@@ -4,13 +4,21 @@ import json
 import pandas as pd
 import os
 import re
+import enum
+
+from utils.qdmr_identifier import QDMRProgramBuilder
+
+
+class ModelType(enum.Enum):
+    SEQ2SEQ = 1
+    MY_COPYNET = 2
 
 
 def get_example_split_set_from_id(question_id):
     return question_id.split('_')[1]
 
 
-def preprocess_input_file(input_file, lexicon_file=None, model=None):
+def preprocess_input_file(input_file, lexicon_file=None, model=None, model_type=ModelType.SEQ2SEQ):
     if lexicon_file:
         lexicon = [
             json.loads(line)
@@ -20,6 +28,7 @@ def preprocess_input_file(input_file, lexicon_file=None, model=None):
         lexicon = None
 
     examples = []
+    process_target = process_target_mycopynet if model_type == ModelType.MY_COPYNET else process_target_seq2seq
     with open(input_file, encoding='utf-8') as f:
         lines = csv.reader(f)
         header = next(lines, None)
@@ -50,7 +59,7 @@ def fix_references(string):
     return re.sub(r'#([1-9][0-9]?)', '@@\g<1>@@', string)
 
 
-def process_target(target):
+def process_target_seq2seq(target):
     # replace multiple whitespaces with a single whitespace.
     target_new = ' '.join(target.split())
 
@@ -63,6 +72,27 @@ def process_target(target):
     target_new = fix_references(target_new)
 
     return target_new.strip()
+
+
+def process_target_mycopynet(target):
+    """Returns the target that 'mycopynet' model needs to learn.
+
+    Parameters
+    ----------
+    target : str
+        the original target in the original QDMR format.
+
+    Returns
+    -------
+    str
+        The target in the format which 'mycopynet' needs to learn
+
+    """
+    builder = QDMRProgramBuilder(target)
+    builder.build()
+    target_new = ''
+    for step in builder.steps:
+        seperator = str(step.operator)
 
 
 def write_output_files(base_path, examples, dynamic_vocab):
@@ -104,7 +134,8 @@ def sample_examples(examples, configuration):
 
 
 def main(args):
-    examples = preprocess_input_file(args.input_file, args.lexicon_file)
+    model_type = ModelType.MY_COPYNET if args.mycopynet else ModelType.SEQ2SEQ
+    examples = preprocess_input_file(args.input_file, lexicon_file=args.lexicon_file, model_type=model_type)
     print(f"processed {len(examples)} examples.")
     if args.sample:
         examples = sample_examples(examples, args.sample)
@@ -130,6 +161,7 @@ if __name__ == '__main__':
     parser.add_argument('--sample', type=json.loads, default="{}",
                         help='json-formatted string with dataset down-sampling configuration, '
                              'for example: {"ATIS": 0.5, "CLEVR": 0.2}')
+    parser.add_argument('--mycopynet', type=bool, default=False, help="True for \"mycopynet\" preprocessing")
     args = parser.parse_args()
     assert os.path.exists(args.input_file)
     assert os.path.exists(args.output_dir)
