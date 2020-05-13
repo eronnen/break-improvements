@@ -5,8 +5,14 @@ import pandas as pd
 import os
 import re
 import enum
+import ast
+import logging
 
-from utils.qdmr_identifier import QDMRProgramBuilder
+from utils.qdmr_identifier import parse_qdmr
+
+
+class NoiseDataException(RuntimeError):
+    pass
 
 
 class ModelType(enum.Enum):
@@ -37,10 +43,14 @@ def preprocess_input_file(input_file, lexicon_file=None, model=None, model_type=
 
         for i, line in enumerate(lines):
             assert len(line) == num_fields, "read {} fields, and not {}".format(len(line), num_fields)
-            question_id, source, target, _, split = line
+            question_id, source, target, operations, split = line
             split = get_example_split_set_from_id(question_id)
 
-            target = process_target(target)
+            operations = ast.literal_eval(operations)
+            try:
+                target = process_target(target.lower(), operations)
+            except NoiseDataException:
+                logging.warning(f"skipping noise data sentence: \"{target}\"")
             example = {'annotation_id': '', 'question_id': question_id,
                        'source': source, 'target': target, 'split': split}
             if model:
@@ -59,7 +69,7 @@ def fix_references(string):
     return re.sub(r'#([1-9][0-9]?)', '@@\g<1>@@', string)
 
 
-def process_target_seq2seq(target):
+def process_target_seq2seq(target, *args, **kwargs):
     # replace multiple whitespaces with a single whitespace.
     target_new = ' '.join(target.split())
 
@@ -74,7 +84,7 @@ def process_target_seq2seq(target):
     return target_new.strip()
 
 
-def process_target_mycopynet(target):
+def process_target_mycopynet(target, operations):
     """Returns the target that 'mycopynet' model needs to learn.
 
     Parameters
@@ -88,11 +98,28 @@ def process_target_mycopynet(target):
         The target in the format which 'mycopynet' needs to learn
 
     """
-    builder = QDMRProgramBuilder(target)
-    builder.build()
+    if 'None' in operations:
+        # this is not a regular QDMR, we'll drop this data.
+        raise NoiseDataException()
+    steps = parse_qdmr(target)
+    assert len(steps) == len(operations)
+    for step, expected_operation in zip(steps, operations):
+        assert step.operator_name == expected_operation, f"wrong operation predicted \"{step.operator_name}\"" \
+                                                         f" instead of \"{expected_operation}\""
     target_new = ''
-    for step in builder.steps:
-        seperator = str(step.operator)
+    for i, step in enumerate(steps):
+        if i > 0:
+            target_new += " "
+        separator = f"@@SEP_{step.full_operator_name}@@"
+        target_new += f"{separator} "
+        for j, arg in enumerate(step.arguments):
+            if j > 0:
+                target_new += " , "
+            if arg.startswith('#'):
+                arg = re.sub(r'#([1-9][0-9]?)', r'@@\g<1>@@', arg)
+            target_new += f" {arg}"
+
+    return target_new
 
 
 def write_output_files(base_path, examples, dynamic_vocab):
@@ -161,7 +188,7 @@ if __name__ == '__main__':
     parser.add_argument('--sample', type=json.loads, default="{}",
                         help='json-formatted string with dataset down-sampling configuration, '
                              'for example: {"ATIS": 0.5, "CLEVR": 0.2}')
-    parser.add_argument('--mycopynet', type=bool, default=False, help="True for \"mycopynet\" preprocessing")
+    parser.add_argument('--mycopynet', action='store_true', help="\"mycopynet\" preprocessing")
     args = parser.parse_args()
     assert os.path.exists(args.input_file)
     assert os.path.exists(args.output_dir)

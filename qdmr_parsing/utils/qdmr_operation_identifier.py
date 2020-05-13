@@ -5,22 +5,6 @@ DELIMITER = ';'
 REF = '#'
 
 
-class QDMROperationType(enum.Enum):
-    SELECT = 0,
-    FILTER = 1,
-    PROJECT = 2,
-    AGGREGATE = 3,
-    GROUP = 4,
-    SUPERLATIVE = 5,
-    COMPARATIVE = 6,
-    UNION = 7,
-    INTERSECTION = 8,
-    DISCARD = 9,
-    SORT = 11,
-    BOOLEAN = 12,
-    ARITHMETIC = 13,
-
-
 class QDMRStepReprType(enum.Enum):
     RAW_QDMR = 0
     MINIMAL_QDMR_FORM = 1
@@ -105,6 +89,9 @@ class QDMROperation(object):
     def arguments(self):
         return self._arguments
 
+    def __str__(self):
+        return f"{self.full_operator_name.upper()}_{self.arguments}"
+
     def _init_from_raw_qdmr_step(self, step):
         """Initializes the object from the given step.
 
@@ -132,7 +119,7 @@ class QDMROperationSelect(QDMROperation):
     """
     Example: "return countries"
     """
-    def __init__(self, step, step_type):
+    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
         super(QDMROperationSelect, self).__init__(step, step_type)
 
     @property
@@ -152,7 +139,7 @@ class QDMROperationFilter(QDMROperation):
     Example: "#2 that is wearing #3"
     Example: "#1 from Canada"
     """
-    def __init__(self, step, step_type):
+    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
         super(QDMROperationFilter, self).__init__(step, step_type)
 
     @property
@@ -173,7 +160,7 @@ class QDMROperationProject(QDMROperation):
     Example: "first name of #2"
     Example: "who was #1 married to"
     """
-    def __init__(self, step, step_type):
+    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
         super(QDMROperationProject, self).__init__(step, step_type)
 
     @property
@@ -198,7 +185,7 @@ class QDMROperationAggregate(QDMROperation):
                    'max', 'min', 'sum', 'total', 'average', 'avg', 'mean of', 'first', 'last',
                    'longest', 'shortest']
 
-    def __init__(self, step, step_type):
+    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
         super(QDMROperationAggregate, self).__init__(step, step_type)
 
     @property
@@ -223,7 +210,7 @@ class QDMROperationGroup(QDMROperation):
     Example: "number of #3 for each #2"
     Example: "average of #1 for each #2"
     """
-    def __init__(self, step, step_type):
+    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
         super(QDMROperationGroup, self).__init__(step, step_type)
 
     @property
@@ -248,10 +235,11 @@ class QDMROperationSuperlative(QDMROperation):
     Example: "#1 where #2 is highest"
     Example: "#1 where #2 is smallest"
     """
-    SUPERLATIVES = ['highest', 'largest', 'most', 'smallest', 'lowest', 'smallest', 'least',
+    RAW_SUPERLATIVES = ['highest', 'largest', 'most', 'smallest', 'lowest', 'smallest', 'least',
                    'longest', 'shortest', 'biggest']
+    SUPERLATIVES = [f"is {sup}" for sup in RAW_SUPERLATIVES] + [f"are {sup}" for sup in RAW_SUPERLATIVES]
 
-    def __init__(self, step, step_type):
+    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
         super(QDMROperationSuperlative, self).__init__(step, step_type)
 
     @property
@@ -266,7 +254,7 @@ class QDMROperationSuperlative(QDMROperation):
         if not ((step.startswith('#') or step.startswith('the #')) and len(references) == 2 and 'where' in step):
             raise TypeError(f'{step} is not {self.operator_name}')
         for s in self.SUPERLATIVES:
-            if s in superlatives:
+            if s in step:
                 self._sub_operator_name = s
                 break
         else:
@@ -285,7 +273,7 @@ class QDMROperationComparative(QDMROperation):
                    'include', 'has', 'have', 'end with', 'start with', 'ends with',
                    'starts with', 'begin']
 
-    def __init__(self, step, step_type):
+    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
         super(QDMROperationComparative, self).__init__(step, step_type)
 
     @property
@@ -315,7 +303,7 @@ class QDMROperationUnion(QDMROperation):
     Example: "#1, #2, #3, #4"
     Example: "#1 and #2"
     """
-    def __init__(self, step, step_type):
+    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
         super(QDMROperationUnion, self).__init__(step, step_type)
 
     @property
@@ -339,12 +327,12 @@ class QDMROperationIntersect(QDMROperation):
     Example: "countries in both #1 and #2"
     Example: "#3 of both #4 and #5"
     """
-    def __init__(self, step, step_type):
+    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
         super(QDMROperationIntersect, self).__init__(step, step_type)
 
     @property
     def operator_name(self):
-        return 'intersect'
+        return 'intersection'
 
     def _init_from_raw_qdmr_step(self, step):
         references = extract_references_from_qdmr_step(step)
@@ -369,7 +357,7 @@ class QDMROperationDiscard(QDMROperation):
     Example: "#2 besides #3"
     Exmple: "#1 besides cats"
     """
-    def __init__(self, step, step_type):
+    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
         super(QDMROperationDiscard, self).__init__(step, step_type)
 
     @property
@@ -399,7 +387,7 @@ class QDMROperationSort(QDMROperation):
     """
     SORT_EXPRESSIONS = [' sorted by', ' order by', ' ordered by']
 
-    def __init__(self, step, step_type):
+    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
         super(QDMROperationSort, self).__init__(step, step_type)
 
     @property
@@ -424,8 +412,9 @@ class QDMROperationBoolean(QDMROperation):  # TODO: sub operation here
     Example: "is #2 more than #3"
     Example: "if #1 is american"
     """
+    BOOLEAN_PREFIXES = ['if ', 'is ', 'are ', 'did ']
 
-    def __init__(self, step, step_type):
+    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
         super(QDMROperationBoolean, self).__init__(step, step_type)
 
     @property
@@ -436,6 +425,12 @@ class QDMROperationBoolean(QDMROperation):  # TODO: sub operation here
         references = extract_references_from_qdmr_step(step)
         # BOOLEAN step - starts with either 'if', 'is' or 'are'
         if not (step.startswith('if ') or step.startswith('is ') or step.startswith('are ') or step.startswith('did ')):
+            raise TypeError(f'{step} is not {self.operator_name}')
+        for expr in self.BOOLEAN_PREFIXES:
+            if step.startswith(expr):
+                boolean_prefix = expr
+                break
+        else:
             raise TypeError(f'{step} is not {self.operator_name}')
 
         logical_op = None
@@ -474,7 +469,7 @@ class QDMROperationBoolean(QDMROperation):  # TODO: sub operation here
                 self._arguments = ["if_exist", objects, condition]
                 return
 
-        raise TypeError(f'{step} is not {self.operator_name}')
+        self._arguments = [step.split(boolean_prefix)[1]]
 
 
 class QDMROperationArithmetic(QDMROperation):
@@ -483,7 +478,7 @@ class QDMROperationArithmetic(QDMROperation):
     """
     ARITHMETICS = ['sum', 'difference', 'multiplication', 'division']
 
-    def __init__(self, step, step_type):
+    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
         super(QDMROperationArithmetic, self).__init__(step, step_type)
 
     @property
@@ -502,6 +497,8 @@ class QDMROperationArithmetic(QDMROperation):
             raise TypeError(f'{step} is not {self.operator_name}')
 
         if len(references) == 1:
+            if 'and' not in step:
+                raise TypeError(f'no \"and\" in {step}')
             prefix, suffix = step.split('and')
             first_arg = prefix.split()[-1]
             self._arguments = [first_arg, suffix]
@@ -515,7 +512,7 @@ class QDMROperationComparison(QDMROperation):  # TODO: sub operation
     """
     Example: "which is highest of #1, #2"
     """
-    def __init__(self, step, step_type):
+    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
         super(QDMROperationComparison, self).__init__(step, step_type)
 
     @property
@@ -536,3 +533,80 @@ class QDMROperationComparison(QDMROperation):  # TODO: sub operation
         self._sub_operator_name = comp
         refs = [f'#{ref}' for ref in references]
         self._arguments = refs
+
+
+QDMR_OPERATION = {
+    'select': QDMROperationSelect,
+    'filter': QDMROperationFilter,
+    'group': QDMROperationGroup,
+    'aggregate': QDMROperationAggregate,
+    'arithmetic': QDMROperationArithmetic,
+    'boolean': QDMROperationBoolean,
+    'comparative': QDMROperationComparative,
+    'discard': QDMROperationDiscard,
+    'intersection': QDMROperationIntersect,
+    'project': QDMROperationProject,
+    'sort': QDMROperationSort,
+    'superlative': QDMROperationSuperlative,
+    'union': QDMROperationUnion,
+    'comparison': QDMROperationComparison,
+}
+
+
+def parse_step(step_text):
+    potential_operators = []
+    for operation_type in QDMR_OPERATION:
+        try:
+            step = QDMR_OPERATION[operation_type](step_text)
+            potential_operators.append(step)
+        except TypeError as e:
+            # not dis type
+            continue
+
+    if len(potential_operators) == 0:
+        raise RuntimeError(f"no QDMR operation found for \"{step_text}\"")
+
+    if len(potential_operators) == 1:
+        return potential_operators.pop()
+
+    # avoid project duplicity with aggregate
+    if any(op.operator_name == "project" for op in potential_operators):
+        potential_operators = [op for op in potential_operators if "project" is not op.operator_name]
+
+    # avoid filter duplicity with comparative, superlative, sort, discard, union
+    if any(op.operator_name == "filter" for op in potential_operators):
+        potential_operators = [op for op in potential_operators if "filter" is not op.operator_name]
+
+    # return boolean (instead of intersect)
+    if any(op.operator_name == "boolean" for op in potential_operators):
+        return next(op for op in potential_operators if op.operator_name == "boolean")
+
+    # return intersect (instead of filter)
+    if any(op.operator_name == "intersect" for op in potential_operators):
+        return next(op for op in potential_operators if op.operator_name == "intersect")
+
+    # return superlative (instead of comparative)
+    if any(op.operator_name == "superlative" for op in potential_operators):
+        return next(op for op in potential_operators if op.operator_name == "superlative")
+
+    # return group (instead of arithmetic)
+    if any(op.operator_name == "group" for op in potential_operators):
+        return next(op for op in potential_operators if op.operator_name == "group")
+
+    # return comparative (instead of discard)
+    if any(op.operator_name == "comparative" for op in potential_operators):
+        return next(op for op in potential_operators if op.operator_name == "comparative")
+
+    # return intersection (instead of intersection)
+    if any(op.operator_name == "intersection" for op in potential_operators):
+        return next(op for op in potential_operators if op.operator_name == "intersection")
+
+    if len(potential_operators) > 1:
+        raise RuntimeError(f"Too many possibilities for \"{step_text}\"")
+
+    if len(potential_operators) == 0:
+        raise RuntimeError(f"0 possibilities for \"{step_text}\" after filtering!!")
+
+    return potential_operators[0]
+
+
