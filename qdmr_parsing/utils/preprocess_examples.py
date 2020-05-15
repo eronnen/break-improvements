@@ -20,6 +20,17 @@ class ModelType(enum.Enum):
     MY_COPYNET = 2
 
 
+# Data that is known to be misleading
+DATA_BLACKLIST = [
+    'CLEVR_train_13650',
+]
+
+# Data that it's operations in the csv is wrong
+WRONG_TRAINING_OPERATION_LIST = [
+    'CLEVR_train_1450',
+]
+
+
 def get_example_split_set_from_id(question_id):
     return question_id.split('_')[1]
 
@@ -48,7 +59,7 @@ def preprocess_input_file(input_file, lexicon_file=None, model=None, model_type=
 
             operations = ast.literal_eval(operations)
             try:
-                target = process_target(target.lower(), operations)
+                target = process_target(target.lower(), operations, question_id)
             except NoiseDataException:
                 logging.warning(f"skipping noise data sentence: \"{target}\"")
             example = {'annotation_id': '', 'question_id': question_id,
@@ -84,7 +95,7 @@ def process_target_seq2seq(target, *args, **kwargs):
     return target_new.strip()
 
 
-def process_target_mycopynet(target, operations):
+def process_target_mycopynet(target, operations, question_id):
     """Returns the target that 'mycopynet' model needs to learn.
 
     Parameters
@@ -98,14 +109,19 @@ def process_target_mycopynet(target, operations):
         The target in the format which 'mycopynet' needs to learn
 
     """
+    if question_id in DATA_BLACKLIST:
+        raise NoiseDataException()
+
     if 'None' in operations:
         # this is not a regular QDMR, we'll drop this data.
         raise NoiseDataException()
+    target = ' '.join(target.split())
     steps = parse_qdmr(target)
     assert len(steps) == len(operations)
-    for step, expected_operation in zip(steps, operations):
-        assert step.operator_name == expected_operation, f"wrong operation predicted \"{step.operator_name}\"" \
-                                                         f" instead of \"{expected_operation}\""
+    if question_id not in WRONG_TRAINING_OPERATION_LIST:
+        for step, expected_operation in zip(steps, operations):
+            assert step.operator_name == expected_operation, f"wrong operation predicted \"{step.operator_name}\"" \
+                                                             f" instead of \"{expected_operation}\""
     target_new = ''
     for i, step in enumerate(steps):
         if i > 0:

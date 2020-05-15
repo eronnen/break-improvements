@@ -35,6 +35,9 @@ def extract_aggragate_from_qdmr_step(step):
     for aggregate in ['avg', 'average', 'mean ']:
         if aggregate in step:
             return "avg"
+    for aggregate in ['closer']:
+        if aggregate in step:
+            return "closer"
     return None
 
 
