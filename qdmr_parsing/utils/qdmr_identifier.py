@@ -23,8 +23,9 @@ def split_decomposition(qdmr):
         tokens = step.split()
         step = ""
         # remove 'return' prefix
-        assert 'return' == tokens[0].lower(), "\"Return\" should be the first toekn of a qdmr"
-        for tok in tokens[1:]:
+        if 'return' == tokens[0].lower():
+            tokens = tokens[1:]
+        for tok in tokens:
             step += tok.strip() + " "
         step = step.strip()
         steps += [step]

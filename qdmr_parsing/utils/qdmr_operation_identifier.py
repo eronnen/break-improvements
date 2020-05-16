@@ -70,6 +70,7 @@ class QDMROperation(object):
         self._arguments = []
         if QDMRStepReprType.RAW_QDMR == step_type:
             self._init_from_raw_qdmr_step(step)
+            self._arguments = [arg.strip() for arg in self._arguments]
         else:
             self._init_from_minimal_qdmr_step_form(step)
 
@@ -251,8 +252,6 @@ class QDMROperationSuperlative(QDMROperation):
 
     def _init_from_raw_qdmr_step(self, step):
         references = extract_references_from_qdmr_step(step)
-        superlatives_is = [f"is {sup}" for sup in self.SUPERLATIVES]
-        superlatives_are = [f"are {sup}" for sup in self.SUPERLATIVES]
         if not ((step.startswith('#') or step.startswith('the #')) and len(references) == 2 and 'where' in step):
             raise TypeError(f'{step} is not {self.operator_name}')
         for s in self.SUPERLATIVES:
@@ -530,11 +529,18 @@ class QDMROperationComparison(QDMROperation):  # TODO: sub operation
             raise TypeError(f'{step} is not {self.operator_name}')
 
         comp = extract_aggragate_from_qdmr_step(step)
-        # check if boolean comparison "which is true of #1, #2"
-        if comp is None and ("true" in step or "false" in step):
-            comp = "true" if "true" in step else "false"
         if comp is None:
-            raise TypeError(f'{step} is not {self.operator_name}')
+            # check if boolean comparison "which is true of #1, #2"
+            if "true" in step or "false" in step:
+                comp = "true" if "true" in step else "false"
+            elif "bigger" in step:
+                comp = "max"
+            elif "smaller" in step:
+                comp = "min"
+            elif "earlier" in step:
+                comp = "min"
+            else:
+                raise TypeError(f'{step} is not {self.operator_name}')
         self._sub_operator_name = comp
         refs = [f'#{ref}' for ref in references]
         self._arguments = refs
@@ -605,6 +611,11 @@ def parse_step(step_text):
     # return intersection (instead of intersection)
     if any(op.operator_name == "intersection" for op in potential_operators):
         return next(op for op in potential_operators if op.operator_name == "intersection")
+
+    # avoid aggregate duplicity with arithmetic
+    if any(op.operator_name == "aggregate" for op in potential_operators) and any(
+            op.operator_name == "arithmetic" for op in potential_operators) and 'and' in step_text:
+        potential_operators = [op for op in potential_operators if "aggregate" is not op.operator_name]
 
     if len(potential_operators) > 1:
         raise RuntimeError(f"Too many possibilities for \"{step_text}\"")
