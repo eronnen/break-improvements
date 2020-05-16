@@ -20,12 +20,10 @@ def split_decomposition(qdmr):
     steps = []
     for i in range(len(crude_steps)):
         step = crude_steps[i]
-        if '' == step:
-            continue
         tokens = step.split()
         step = ""
         # remove 'return' prefix
-        if 'return' == tokens[0].lower():
+        if len(tokens) > 0 and 'return' == tokens[0].lower():
             tokens = tokens[1:]
         for tok in tokens:
             step += tok.strip() + " "

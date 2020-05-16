@@ -71,7 +71,6 @@ class QDMROperation(object):
         if QDMRStepReprType.RAW_QDMR == step_type:
             self._init_from_raw_qdmr_step(step)
             self._arguments = [arg.strip() for arg in self._arguments]
-            assert '' not in self._arguments
         else:
             self._init_from_minimal_qdmr_step_form(step)
 
@@ -157,6 +156,7 @@ class QDMROperationFilter(QDMROperation):
             raise TypeError(f'{step} is not {self.operator_name}')
         to_filter = f"#{references[0]}"
         filter_condition = step.split(to_filter, 1)[1]
+        # condition might be empty
         self._arguments = [to_filter, filter_condition]
 
 
@@ -179,6 +179,7 @@ class QDMROperationProject(QDMROperation):
         ref = f"#{references[0]}"
         projection = step.replace(ref, "#REF")
         self._arguments = [projection, ref]
+        assert '' not in self._arguments
 
 
 class QDMROperationAggregate(QDMROperation):
@@ -203,11 +204,17 @@ class QDMROperationAggregate(QDMROperation):
             raise TypeError(f'{step} is not {self.operator_name}')
         for aggr in self.AGGREGATORS:
             if f"{aggr} #" in step or f"{aggr} of #" in step:
+                if aggr == 'number of' and not step.startswith(aggr) and not step.startswith(f"the {aggr}"):
+                    before_number_of = step.split("number of")[0].strip()
+                    if before_number_of not in ["total", "the combined", "count", "count the", "the total", "there", "average"]:
+                        # it's not aggragate number of, here number of is a part of a Construct state
+                        continue
                 self._sub_operator_name = aggr
                 break
         else:
             raise TypeError(f'{step} is not {self.operator_name}')
         self._arguments = [f"#{references[0]}"]
+        assert '' not in self._arguments
 
 
 class QDMROperationGroup(QDMROperation):
@@ -233,6 +240,7 @@ class QDMROperationGroup(QDMROperation):
         arg_value = value.split()[-1] if len(val_refs) == 0 else "#%s" % val_refs[0]
         arg_key = key.split()[-1] if len(key_refs) == 0 else f"#{key_refs[0]}"
         self._arguments = [arg_value, arg_key]
+        assert '' not in self._arguments
 
 
 class QDMROperationSuperlative(QDMROperation):
@@ -263,6 +271,7 @@ class QDMROperationSuperlative(QDMROperation):
             raise TypeError(f'{step} is not {self.operator_name}')
         entity_ref, attribute_ref = references
         self._arguments = [f"#{entity_ref}", f"#{attribute_ref}"]
+        assert '' not in self._arguments
 
 
 class QDMROperationComparative(QDMROperation):
@@ -296,6 +305,7 @@ class QDMROperationComparative(QDMROperation):
             comparative = step.split('where at least one', 1)[1]
             attribute_1, attribute_2 = comparative.split(' is ', 1)
             self._arguments = [to_filter, attribute_1, attribute_2]
+            assert '' not in self._arguments
             return
 
         for comp in self.COMPARATIVES:
@@ -342,6 +352,7 @@ class QDMROperationUnion(QDMROperation):
         self._arguments = []
         for ref in references:
             self._arguments.append(f"#{ref}")
+        assert '' not in self._arguments
 
 
 class QDMROperationIntersect(QDMROperation):
@@ -374,6 +385,7 @@ class QDMROperationIntersect(QDMROperation):
             self._arguments = [projection]
         intersection_references = extract_references_from_qdmr_step(intersection)
         self._arguments += [f"#{ref}" for ref in intersection_references]
+        assert '' not in self._arguments
 
 
 class QDMROperationDiscard(QDMROperation):
@@ -402,6 +414,7 @@ class QDMROperationDiscard(QDMROperation):
             raise TypeError(f'{step} is not {self.operator_name}')
         set_1, set_2 = step.split(discard_expr, 1)
         self._arguments = [set_1, set_2]
+        assert '' not in self._arguments
 
 
 class QDMROperationSort(QDMROperation):
@@ -428,6 +441,7 @@ class QDMROperationSort(QDMROperation):
             raise TypeError(f'{step} is not {self.operator_name}')
         objects, order = [frag.strip() for frag in step.split(sort_expr, 1)]
         self._arguments = [objects, order]
+        assert '' not in self._arguments
 
 
 class QDMROperationBoolean(QDMROperation):  # TODO: sub operation here
@@ -467,6 +481,7 @@ class QDMROperationBoolean(QDMROperation):  # TODO: sub operation here
             bool_expr = "false" if "false" in step else "true"
             sub_expressions = [f"#{ref}" for ref in references]
             self._arguments = [logical_op, bool_expr] + sub_expressions
+            assert '' not in self._arguments
             return
 
         if step.split()[1].startswith("#"):
@@ -474,6 +489,7 @@ class QDMROperationBoolean(QDMROperation):  # TODO: sub operation here
             objects = f"#{references[0]}"
             condition = step.split(objects, 1)[1]
             self._arguments = [objects, condition]
+            assert '' not in self._arguments
             return
 
         if len(references) == 1 and not step.split()[1].startswith("#"):
@@ -481,6 +497,7 @@ class QDMROperationBoolean(QDMROperation):  # TODO: sub operation here
             objects = f"#{references[0]}"
             condition = step.replace(objects, "#REF")
             self._arguments = [objects, condition]
+            assert '' not in self._arguments
             return
 
         if len(references) == 2:
@@ -491,9 +508,11 @@ class QDMROperationBoolean(QDMROperation):  # TODO: sub operation here
                 # exists boolean "if any #2 are the same as #3"
                 condition = step.split(objects, 1)[1]
                 self._arguments = ["if_exist", objects, condition]
+                assert '' not in self._arguments
                 return
 
         self._arguments = [step.split(boolean_prefix, 1)[1]]
+        assert '' not in self._arguments
 
 
 class QDMROperationArithmetic(QDMROperation):
@@ -528,10 +547,12 @@ class QDMROperationArithmetic(QDMROperation):
             prefix, suffix = step.split('and', 1)
             first_arg = prefix.split(expression, 1)[1]
             self._arguments = [first_arg, suffix]
+            assert '' not in self._arguments
             return
         else:
             refs = [f'#{ref}' for ref in references]
             self._arguments = refs
+            assert '' not in self._arguments
 
 
 class QDMROperationComparison(QDMROperation):  # TODO: sub operation
@@ -566,6 +587,7 @@ class QDMROperationComparison(QDMROperation):  # TODO: sub operation
         self._sub_operator_name = comp
         refs = [f'#{ref}' for ref in references]
         self._arguments = refs
+        assert '' not in self._arguments
 
 
 QDMR_OPERATION = {

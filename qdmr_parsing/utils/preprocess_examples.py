@@ -101,11 +101,11 @@ def process_target_mycopynet(target, operations, question_id):
     target = ' '.join(target.split())
     step_texts = split_decomposition(target)
 
-    # sometimes there is a useless 'return' as the last step
-    if '' == step_texts[-1] and 'select' == operations[-1]:
-        step_texts = step_texts[:-1]
-        operations = operations[:-1]
+    # sometimes there is a useless 'return;' in the middle of the target (???)'
+    operations = [operation for operation, step_text in zip(operations, step_texts) if step_text != '']
+    step_texts = [step_text for step_text in step_texts if step_text != '']
 
+    assert len(step_texts) == len(operations)
     steps = [parse_step(step) for step in step_texts]
     assert len(steps) == len(operations)
     if question_id not in WRONG_TRAINING_OPERATION_LIST:
