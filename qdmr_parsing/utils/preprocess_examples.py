@@ -43,12 +43,13 @@ def preprocess_input_file(input_file, lexicon_file=None, model=None, model_type=
             question_id, source, target, operations, split = line
             split = get_example_split_set_from_id(question_id)
 
-            operations = ast.literal_eval(operations)
-            try:
-                target = process_target(target.lower(), operations, question_id)
-            except NoiseDataException:
-                logging.warning(f"skipping noise data sentence: \"{target}\"")
-                continue
+            if target:
+                operations = ast.literal_eval(operations)
+                try:
+                    target = process_target(target.lower(), operations, question_id)
+                except NoiseDataException:
+                    logging.warning(f"skipping noise data sentence: \"{target}\"")
+                    continue
             example = {'annotation_id': '', 'question_id': question_id,
                        'source': source, 'target': target, 'split': split}
             if model:
