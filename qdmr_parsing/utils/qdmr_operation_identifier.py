@@ -322,8 +322,11 @@ class QDMROperationComparative(QDMROperation):
                 comparative = step.split('where', 1)[1]
                 attribute_1, attribute_2 = comparative.split(expr, 1)
                 arguments = [to_filter, attribute_1, attribute_2]
-                if '' not in arguments:
-                    return
+                if '' in arguments:
+                    continue
+
+                self._arguments = arguments
+                return
 
         else:
             raise TypeError(f'{step} is not {self.operator_name}')
