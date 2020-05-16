@@ -22,12 +22,28 @@ class ModelType(enum.Enum):
 
 # Data that is known to be misleading
 DATA_BLACKLIST = [
+    # there is 'and one' where 'one' should be '#1'
     'CLEVR_train_13650',
+    'CLEVR_train_6425',
+    'COMQA_train_cluster-1740-1',
+    'COMQA_train_cluster-2081-1',
+    'COMQA_train_cluster-2081-2',
 ]
 
 # Data that it's operations in the csv is wrong
 WRONG_TRAINING_OPERATION_LIST = [
     'CLEVR_train_1450',
+    'CLEVR_train_16932',
+    'CLEVR_train_2182',
+    'CLEVR_train_6379',
+    'GEO_train_126',
+    'CWQ_train_WebQTest-380_4c7907860e095c22b6bac71653f566ab',
+    'CWQ_train_WebQTrn-1022_a0de7a84fd8601231a8d987cd65e0e29',
+    'CWQ_train_WebQTrn-142_9a43288a2ba3603595ca8acd460b05ae',
+    'DROP_train_history_1089_4696b303-920b-4973-860e-1a9fad6045e8',
+    'DROP_train_history_1312_c562dfb1-0dd2-4b0e-b09b-0fa344dde8d3',
+    'DROP_train_history_1377_3480a931-fe65-4867-849d-9ec919501aff',
+    'DROP_train_history_1428_2548d408-ee79-4fca-8bf9-f7663993e095',
 ]
 
 

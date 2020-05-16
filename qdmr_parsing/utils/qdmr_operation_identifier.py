@@ -154,7 +154,7 @@ class QDMROperationFilter(QDMROperation):
         if not (0 < len(references) <= 3 and step.startswith("#")):
             raise TypeError(f'{step} is not {self.operator_name}')
         to_filter = f"#{references[0]}"
-        filter_condition = step.split(to_filter)[1]
+        filter_condition = step.split(to_filter, 1)[1]
         self._arguments = [to_filter, filter_condition]
 
 
@@ -225,7 +225,7 @@ class QDMROperationGroup(QDMROperation):
         if not ('for each' in step and len(references) > 0):
             raise TypeError(f'{step} is not {self.operator_name}')
         self._sub_operator_name = extract_aggragate_from_qdmr_step(step)
-        value, key = step.split('for each')
+        value, key = step.split('for each', 1)
         val_refs = extract_references_from_qdmr_step(value)
         key_refs = extract_references_from_qdmr_step(key)
         arg_value = value.split()[-1] if len(val_refs) == 0 else "#%s" % val_refs[0]
@@ -253,7 +253,6 @@ class QDMROperationSuperlative(QDMROperation):
         references = extract_references_from_qdmr_step(step)
         superlatives_is = [f"is {sup}" for sup in self.SUPERLATIVES]
         superlatives_are = [f"are {sup}" for sup in self.SUPERLATIVES]
-        superlatives = superlatives_is + superlatives_are
         if not ((step.startswith('#') or step.startswith('the #')) and len(references) == 2 and 'where' in step):
             raise TypeError(f'{step} is not {self.operator_name}')
         for s in self.SUPERLATIVES:
@@ -271,7 +270,7 @@ class QDMROperationComparative(QDMROperation):
     Example: "#1 where #2 is at most three"
     Example: "#3 where #4 is higher than #2"
     """
-    COMPARATIVES = ['same as', 'higher than', 'larger than', 'smaller than', 'lower than',
+    COMPARATIVES = ['same as', 'higher than', 'larger than', 'smaller than', 'lower than', 'less than',
                    'more', 'less', 'at least', 'at most', 'equal', 'is ', 'are', 'was', 'contain',
                    'include', 'has', 'have', 'end with', 'start with', 'ends with',
                    'starts with', 'begin']
@@ -296,7 +295,7 @@ class QDMROperationComparative(QDMROperation):
             raise TypeError(f'{step} is not {self.operator_name}')
         to_filter = f"{references[0]}"
         attribute = f"{references[1]}"
-        condition = step.split(attribute)[1]
+        condition = step.split(attribute, 1)[1]
         self._arguments = [to_filter, attribute, condition]
 
 
@@ -342,14 +341,15 @@ class QDMROperationIntersect(QDMROperation):
         if not (len(references) >= 2 and 'both' in step and ' and' in step):
             raise TypeError(f'{step} is not {self.operator_name}')
         for expr in ['of both', 'in both', 'by both', 'between both',
-                     'for both', 'are both', 'both of']:
+                     'for both', 'are both', 'both of', 'both']:
             if expr in step:
                 intersection_expression = expr
                 break
         else:
             raise TypeError(f'{step} is not {self.operator_name}')
 
-        projection, intersection = step.split(intersection_expression)
+        self._sub_operator_name = intersection_expression
+        projection, intersection = step.split(intersection_expression, 1)
         self._arguments = [projection]
         intersection_references = extract_references_from_qdmr_step(intersection)
         self._arguments += [f"#{ref}" for ref in intersection_references]
@@ -379,7 +379,7 @@ class QDMROperationDiscard(QDMROperation):
                 break
         else:
             raise TypeError(f'{step} is not {self.operator_name}')
-        set_1, set_2 = step.split(discard_expr)
+        set_1, set_2 = step.split(discard_expr, 1)
         self._arguments = [set_1, set_2]
 
 
@@ -405,7 +405,7 @@ class QDMROperationSort(QDMROperation):
                 break
         else:
             raise TypeError(f'{step} is not {self.operator_name}')
-        objects, order = [frag.strip() for frag in step.split(sort_expr)]
+        objects, order = [frag.strip() for frag in step.split(sort_expr, 1)]
         self._arguments = [objects, order]
 
 
@@ -451,7 +451,7 @@ class QDMROperationBoolean(QDMROperation):  # TODO: sub operation here
         if step.split()[1].startswith("#"):
             # filter boolean, e.g., "if #1 is american"
             objects = f"#{references[0]}"
-            condition = step.split(objects)[1]
+            condition = step.split(objects, 1)[1]
             self._arguments = [objects, condition]
             return
 
@@ -464,22 +464,23 @@ class QDMROperationBoolean(QDMROperation):  # TODO: sub operation here
 
         if len(references) == 2:
             objects = f"#{references[0]}"
-            prefix = step.split(objects)[0].lower()
+            prefix = step.split(objects, 1)[0].lower()
             if "any" in prefix or "is there" in prefix \
                     or "there is" in prefix or "there are" in prefix:
                 # exists boolean "if any #2 are the same as #3"
-                condition = step.split(objects)[1]
+                condition = step.split(objects, 1)[1]
                 self._arguments = ["if_exist", objects, condition]
                 return
 
-        self._arguments = [step.split(boolean_prefix)[1]]
+        self._arguments = [step.split(boolean_prefix, 1)[1]]
 
 
 class QDMROperationArithmetic(QDMROperation):
     """
     Example: "difference of #3 and #5"
     """
-    ARITHMETICS = ['sum', 'difference', 'multiplication', 'division']
+    ARITHMETICS = ['sum of', 'difference between', 'difference of', 'multiplication of', 'division of',
+                              'sum', 'difference', 'multiplication', 'division']
 
     def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
         super(QDMROperationArithmetic, self).__init__(step, step_type)
@@ -494,7 +495,8 @@ class QDMROperationArithmetic(QDMROperation):
             raise TypeError(f'{step} is not {self.operator_name}')
         for a in self.ARITHMETICS:
             if step.startswith(a) or step.startswith(f'the {a}'):
-                self._sub_operator_name = a
+                expression = a
+                self._sub_operator_name = expression.split()[0]
                 break
         else:
             raise TypeError(f'{step} is not {self.operator_name}')
@@ -502,8 +504,8 @@ class QDMROperationArithmetic(QDMROperation):
         if len(references) == 1:
             if 'and' not in step:
                 raise TypeError(f'no \"and\" in {step}')
-            prefix, suffix = step.split('and')
-            first_arg = prefix.split()[-1]
+            prefix, suffix = step.split('and', 1)
+            first_arg = prefix.split(expression, 1)[1]
             self._arguments = [first_arg, suffix]
             return
         else:
