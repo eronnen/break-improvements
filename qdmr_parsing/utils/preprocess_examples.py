@@ -48,6 +48,7 @@ def preprocess_input_file(input_file, lexicon_file=None, model=None, model_type=
                 target = process_target(target.lower(), operations, question_id)
             except NoiseDataException:
                 logging.warning(f"skipping noise data sentence: \"{target}\"")
+                continue
             example = {'annotation_id': '', 'question_id': question_id,
                        'source': source, 'target': target, 'split': split}
             if model:
@@ -169,7 +170,7 @@ def sample_examples(examples, configuration):
 def main(args):
     model_type = ModelType.MY_COPYNET if args.mycopynet else ModelType.SEQ2SEQ
     examples = preprocess_input_file(args.input_file, lexicon_file=args.lexicon_file, model_type=model_type)
-    print(f"processed {len(examples)} examples.")
+    print(f"processed {len(examples)} examples. out of {len(open(args.input_file, encoding='utf-8').readlines())}")
     if args.sample:
         examples = sample_examples(examples, args.sample)
         print(f"left with {len(examples)} examples after sampling.")

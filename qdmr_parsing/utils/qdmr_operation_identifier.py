@@ -86,7 +86,7 @@ class QDMROperation(object):
     @property
     def full_operator_name(self):
         if self.sub_operator_name is not None:
-            return f'{self.operator_name}_{self.sub_operator_name}'
+            return f'{self.operator_name}_{self.sub_operator_name.replace(" ", "@")}'
         return self.operator_name
 
     @property
