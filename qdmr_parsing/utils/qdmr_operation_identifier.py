@@ -71,6 +71,7 @@ class QDMROperation(object):
         if QDMRStepReprType.RAW_QDMR == step_type:
             self._init_from_raw_qdmr_step(step)
             self._arguments = [arg.strip() for arg in self._arguments]
+            assert '' not in self._arguments
         else:
             self._init_from_minimal_qdmr_step_form(step)
 
@@ -269,10 +270,11 @@ class QDMROperationComparative(QDMROperation):
     Example: "#1 where #2 is at most three"
     Example: "#3 where #4 is higher than #2"
     """
-    COMPARATIVES = ['same as', 'higher than', 'larger than', 'smaller than', 'lower than', 'less than',
-                   'more', 'less', 'at least', 'at most', 'equal', 'is ', 'are', 'was', 'contain',
-                   'include', 'has', 'have', 'end with', 'start with', 'ends with',
-                   'starts with', 'begin']
+    COMPARATIVES = ['same as', 'same as', 'higher than', 'larger than', 'smaller than', 'lower than',
+                    'less than',
+                    'more', 'less', 'at least', 'at most', 'equal', ' is ', 'are', 'was', 'contain',
+                    'include', 'has', 'have', 'end with', 'start with', 'ends with',
+                    'starts with', 'begin']
 
     def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
         super(QDMROperationComparative, self).__init__(step, step_type)
@@ -286,16 +288,35 @@ class QDMROperationComparative(QDMROperation):
         if not (2 <= len(references) <= 3 and 'where' in step
                 and (step.startswith('#') or step.startswith('the #'))):
             raise TypeError(f'{step} is not {self.operator_name}')
+        if 'where at least one' in step:
+            # special comarative structure here
+            if ' is ' not in step:
+                raise TypeError(f'{step} is not {self.operator_name} - weird at least one sentence')
+            to_filter = f"#{references[0]}"
+            comparative = step.split('where at least one', 1)[1]
+            attribute_1, attribute_2 = comparative.split(' is ', 1)
+            self._arguments = [to_filter, attribute_1, attribute_2]
+            return
+
         for comp in self.COMPARATIVES:
             if comp in step:
                 self._sub_operator_name = comp
-                break
+                if f'is the {comp}' in step:
+                    expr = f'is the {comp}'
+                elif f'is {comp}' in step:
+                    expr = f'is {comp}'
+                else:
+                    expr = comp
+
+                to_filter = f"#{references[0]}"
+                comparative = step.split('where', 1)[1]
+                attribute_1, attribute_2 = comparative.split(expr, 1)
+                arguments = [to_filter, attribute_1, attribute_2]
+                if '' not in arguments:
+                    return
+
         else:
             raise TypeError(f'{step} is not {self.operator_name}')
-        to_filter = f"{references[0]}"
-        attribute = f"{references[1]}"
-        condition = step.split(attribute, 1)[1]
-        self._arguments = [to_filter, attribute, condition]
 
 
 class QDMROperationUnion(QDMROperation):
@@ -349,7 +370,8 @@ class QDMROperationIntersect(QDMROperation):
 
         self._sub_operator_name = intersection_expression
         projection, intersection = step.split(intersection_expression, 1)
-        self._arguments = [projection]
+        if projection:
+            self._arguments = [projection]
         intersection_references = extract_references_from_qdmr_step(intersection)
         self._arguments += [f"#{ref}" for ref in intersection_references]
 

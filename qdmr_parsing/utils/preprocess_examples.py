@@ -8,7 +8,7 @@ import enum
 import ast
 import logging
 
-from utils.qdmr_identifier import parse_qdmr
+from utils.qdmr_identifier import split_decomposition, parse_step
 from utils.break_dataset import is_noisy_data, NoiseDataException, WRONG_TRAINING_OPERATION_LIST
 
 
@@ -99,7 +99,14 @@ def process_target_mycopynet(target, operations, question_id):
         raise NoiseDataException()
 
     target = ' '.join(target.split())
-    steps = parse_qdmr(target)
+    step_texts = split_decomposition(target)
+
+    # sometimes there is a useless 'return' as the last step
+    if '' == step_texts[-1] and 'select' == operations[-1]:
+        step_texts = step_texts[:-1]
+        operations = operations[:-1]
+
+    steps = [parse_step(step) for step in step_texts]
     assert len(steps) == len(operations)
     if question_id not in WRONG_TRAINING_OPERATION_LIST:
         for step, expected_operation in zip(steps, operations):

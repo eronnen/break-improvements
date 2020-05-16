@@ -5,9 +5,10 @@ class NoiseDataException(RuntimeError):
 
 # Data that is known to be misleading
 DATA_BLACKLIST = [
-    # there is 'and one' where 'one' should be '#1'
+    # a lot of 'and one' where 'one' should be '#1' in the training data
     'CLEVR_train_13650',
     'CLEVR_train_6425',
+    'CLEVR_train_13127',
     'COMQA_train_cluster-1740-1',
     'COMQA_train_cluster-2081-1',
     'COMQA_train_cluster-2081-2',
@@ -227,6 +228,13 @@ WRONG_TRAINING_OPERATION_LIST = [
     'DROP_train_history_731_1acef0a5-6400-4934-85d4-9817d88bcd12',
     'DROP_train_history_744_3b73177f-950b-483c-9291-67cbe93b3fe7',
     'DROP_train_history_981_a993f01e-b95f-486e-a5ac-9a6c69e99aa7',
+    'DROP_train_nfl_338_8de196b9-3382-4276-89dd-8403c1fd76c1',
+    'DROP_train_nfl_804_05d55c23-2fd2-4446-b3a6-66ac4fc7bd8f',
+    'DROP_train_nfl_338_8de196b9-3382-4276-89dd-8403c1fd76c1',
+    'DROP_train_nfl_804_05d55c23-2fd2-4446-b3a6-66ac4fc7bd8f',
+
+    'SPIDER_train_2035',
+
 ]
 
 

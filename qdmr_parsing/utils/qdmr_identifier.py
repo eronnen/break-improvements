@@ -20,6 +20,8 @@ def split_decomposition(qdmr):
     steps = []
     for i in range(len(crude_steps)):
         step = crude_steps[i]
+        if '' == step:
+            continue
         tokens = step.split()
         step = ""
         # remove 'return' prefix
@@ -29,7 +31,7 @@ def split_decomposition(qdmr):
             step += tok.strip() + " "
         step = step.strip()
         steps += [step]
-    return steps
+    return [step.strip() for step in steps]
 
 
 def parse_qdmr(qdmr_text):
