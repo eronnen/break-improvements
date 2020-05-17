@@ -137,6 +137,8 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# Break data
+# Break stuff
 data/
+models/
+trained_models/
 

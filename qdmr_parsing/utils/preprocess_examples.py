@@ -4,17 +4,11 @@ import json
 import pandas as pd
 import os
 import re
-import enum
 import ast
 import logging
 
 from utils.qdmr_identifier import split_decomposition, parse_step
 from utils.break_dataset import is_noisy_data, NoiseDataException, WRONG_TRAINING_OPERATION_LIST
-
-
-class ModelType(enum.Enum):
-    SEQ2SEQ = 1
-    MY_COPYNET = 2
 
 
 def get_example_split_set_from_id(question_id):
@@ -31,7 +25,7 @@ def preprocess_input_file(input_file, lexicon_file=None, model=None, model_type=
         lexicon = None
 
     examples = []
-    process_target = process_target_mycopynet if model_type == ModelType.MY_COPYNET else process_target_seq2seq
+    process_target = process_target_mycopynet if model_type == 'mycopynet' else process_target_seq2seq
     with open(input_file, encoding='utf-8') as f:
         lines = csv.reader(f)
         header = next(lines, None)
@@ -169,7 +163,7 @@ def sample_examples(examples, configuration):
 
 
 def main(args):
-    model_type = ModelType.MY_COPYNET if args.mycopynet else ModelType.SEQ2SEQ
+    model_type = "mycopynet" if args.mycopynet else "seq2seq"
     examples = preprocess_input_file(args.input_file, lexicon_file=args.lexicon_file, model_type=model_type)
     print(f"processed {len(examples)} examples. out of {len(open(args.input_file, encoding='utf-8').readlines())}")
     if args.sample:
