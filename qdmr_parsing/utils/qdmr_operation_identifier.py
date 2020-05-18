@@ -1,13 +1,7 @@
-import enum
 import re
 
 DELIMITER = ';'
 REF = '#'
-
-
-class QDMRStepReprType(enum.Enum):
-    RAW_QDMR = 0
-    MINIMAL_QDMR_FORM = 1
 
 
 def extract_aggragate_from_qdmr_step(step):
@@ -65,15 +59,9 @@ def extract_references_from_qdmr_step(step):
 
 
 class QDMROperation(object):
-    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
+    def __init__(self):
         self._sub_operator_name = None
         self._arguments = []
-        if QDMRStepReprType.RAW_QDMR == step_type:
-            self._init_from_raw_qdmr_step(step)
-            self._arguments = [arg.strip() for arg in self._arguments]
-        else:
-            self._init_from_minimal_qdmr_step_form(step)
-
 
     @property
     def operator_name(self):
@@ -96,6 +84,18 @@ class QDMROperation(object):
     def __str__(self):
         return f"{self.full_operator_name.upper()}_{self.arguments}"
 
+    def init_from_raw_qdmr_step(self, step):
+        """Initializes the object from the given step.
+
+        Parameters
+        ----------
+        self : QDMROperation
+        step : str
+
+        """
+        self._init_from_raw_qdmr_step(step)
+        self._arguments = [arg.strip() for arg in self._arguments]
+
     def _init_from_raw_qdmr_step(self, step):
         """Initializes the object from the given step.
 
@@ -107,14 +107,9 @@ class QDMROperation(object):
         """
         raise NotImplementedError()
 
-    def _init_from_minimal_qdmr_step_form(self, step):
-        """Initializes the object from the given step.
-
-        Parameters
-        ----------
-        self : QDMROperation
-        step : str
-
+    def generate_step_text(self):
+        """
+        generate step text from the operation and the arguments
         """
         raise NotImplementedError()
 
@@ -123,9 +118,6 @@ class QDMROperationSelect(QDMROperation):
     """
     Example: "return countries"
     """
-    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
-        super(QDMROperationSelect, self).__init__(step, step_type)
-
     @property
     def operator_name(self):
         return 'select'
@@ -143,9 +135,6 @@ class QDMROperationFilter(QDMROperation):
     Example: "#2 that is wearing #3"
     Example: "#1 from Canada"
     """
-    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
-        super(QDMROperationFilter, self).__init__(step, step_type)
-
     @property
     def operator_name(self):
         return 'filter'
@@ -165,9 +154,6 @@ class QDMROperationProject(QDMROperation):
     Example: "first name of #2"
     Example: "who was #1 married to"
     """
-    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
-        super(QDMROperationProject, self).__init__(step, step_type)
-
     @property
     def operator_name(self):
         return 'project'
@@ -190,9 +176,6 @@ class QDMROperationAggregate(QDMROperation):
     AGGREGATORS = ['number of', 'highest', 'largest', 'lowest', 'smallest', 'maximum', 'minimum',
                    'max', 'min', 'sum', 'total', 'average', 'avg', 'mean of', 'first', 'last',
                    'longest', 'shortest']
-
-    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
-        super(QDMROperationAggregate, self).__init__(step, step_type)
 
     @property
     def operator_name(self):
@@ -222,9 +205,6 @@ class QDMROperationGroup(QDMROperation):
     Example: "number of #3 for each #2"
     Example: "average of #1 for each #2"
     """
-    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
-        super(QDMROperationGroup, self).__init__(step, step_type)
-
     @property
     def operator_name(self):
         return 'group'
@@ -251,9 +231,6 @@ class QDMROperationSuperlative(QDMROperation):
     RAW_SUPERLATIVES = ['highest', 'largest', 'most', 'smallest', 'lowest', 'smallest', 'least',
                    'longest', 'shortest', 'biggest']
     SUPERLATIVES = [f"is {sup}" for sup in RAW_SUPERLATIVES] + [f"are {sup}" for sup in RAW_SUPERLATIVES]
-
-    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
-        super(QDMROperationSuperlative, self).__init__(step, step_type)
 
     @property
     def operator_name(self):
@@ -284,9 +261,6 @@ class QDMROperationComparative(QDMROperation):
                     'more than', 'less than', 'at least', 'at most', 'equal', ' is ', 'are', 'was', 'contain',
                     'include', 'has', 'have', 'end with', 'start with', 'ends with',
                     'starts with', 'begin']
-
-    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
-        super(QDMROperationComparative, self).__init__(step, step_type)
 
     @property
     def operator_name(self):
@@ -338,9 +312,6 @@ class QDMROperationUnion(QDMROperation):
     Example: "#1, #2, #3, #4"
     Example: "#1 and #2"
     """
-    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
-        super(QDMROperationUnion, self).__init__(step, step_type)
-
     @property
     def operator_name(self):
         return 'union'
@@ -363,9 +334,6 @@ class QDMROperationIntersect(QDMROperation):
     Example: "countries in both #1 and #2"
     Example: "#3 of both #4 and #5"
     """
-    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
-        super(QDMROperationIntersect, self).__init__(step, step_type)
-
     @property
     def operator_name(self):
         return 'intersection'
@@ -396,9 +364,6 @@ class QDMROperationDiscard(QDMROperation):
     Example: "#2 besides #3"
     Exmple: "#1 besides cats"
     """
-    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
-        super(QDMROperationDiscard, self).__init__(step, step_type)
-
     @property
     def operator_name(self):
         return 'discard'
@@ -427,9 +392,6 @@ class QDMROperationSort(QDMROperation):
     """
     SORT_EXPRESSIONS = [' sorted by', ' order by', ' ordered by']
 
-    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
-        super(QDMROperationSort, self).__init__(step, step_type)
-
     @property
     def operator_name(self):
         return 'sort'
@@ -454,9 +416,6 @@ class QDMROperationBoolean(QDMROperation):  # TODO: sub operation here
     Example: "if #1 is american"
     """
     BOOLEAN_PREFIXES = ['if ', 'is ', 'are ', 'did ']
-
-    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
-        super(QDMROperationBoolean, self).__init__(step, step_type)
 
     @property
     def operator_name(self):
@@ -525,9 +484,6 @@ class QDMROperationArithmetic(QDMROperation):
     ARITHMETICS = ['sum of', 'difference between', 'difference of', 'multiplication of', 'division of',
                               'sum', 'difference', 'multiplication', 'division']
 
-    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
-        super(QDMROperationArithmetic, self).__init__(step, step_type)
-
     @property
     def operator_name(self):
         return 'arithmetic'
@@ -562,8 +518,6 @@ class QDMROperationComparison(QDMROperation):  # TODO: sub operation
     """
     Example: "which is highest of #1, #2"
     """
-    def __init__(self, step, step_type=QDMRStepReprType.RAW_QDMR):
-        super(QDMROperationComparison, self).__init__(step, step_type)
 
     @property
     def operator_name(self):
@@ -615,7 +569,8 @@ def parse_step(step_text):
     potential_operators = []
     for operation_type in QDMR_OPERATION:
         try:
-            step = QDMR_OPERATION[operation_type](step_text)
+            step = QDMR_OPERATION[operation_type]()
+            step.init_from_raw_qdmr_step(step_text)
             potential_operators.append(step)
         except TypeError as e:
             # not dis type
@@ -673,3 +628,11 @@ def parse_step(step_text):
     return potential_operators[0]
 
 
+def parse_step_from_mycopynet(step_text):
+    seperator = step_text.split(' ')[0]
+    operation, sub_operation = re.match(r'@@SEP_([a-z]+)_?([a-z@]+)?', seperator)
+    if sub_operation:
+        sub_operation = sub_operation.replace('@', ' ')
+    step = QDMR_OPERATION[operation]()
+    step._sub_operator_name = sub_operation
+    step._arguments = step_text.split(seperator)[1].split(' , ')

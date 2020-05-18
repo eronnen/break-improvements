@@ -15,7 +15,7 @@ def get_example_split_set_from_id(question_id):
     return question_id.split('_')[1]
 
 
-def preprocess_input_file(input_file, lexicon_file=None, model=None, model_type=ModelType.SEQ2SEQ):
+def preprocess_input_file(input_file, lexicon_file=None, model=None, model_type='seq2seq'):
     if lexicon_file:
         lexicon = [
             json.loads(line)
