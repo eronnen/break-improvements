@@ -11,7 +11,7 @@ from progressbar import ProgressBar, SimpleProgress
 from tqdm import tqdm
 
 from evaluation.sequence_matcher import SequenceMatchScorer
-from utils.timeout import exit_after
+from evaluation_moodle.utils.timeout import exit_after
 
 
 class GraphMatchScorer(object):

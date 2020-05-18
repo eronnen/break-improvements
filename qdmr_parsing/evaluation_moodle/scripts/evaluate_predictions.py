@@ -9,12 +9,12 @@ import re
 import numpy as np
 import pandas as pd
 
-from evaluation.decomposition import Decomposition
-from evaluation.graph_matcher import GraphMatchScorer, get_ged_plus_scores
-from evaluation.sari_hook import get_sari
-from evaluation.sequence_matcher import SequenceMatchScorer
-from evaluation.normal_form.normalized_graph_matcher import NormalizedGraphMatchScorer
-import evaluation.normal_form.normalization_rules as norm_rules
+from evaluation_moodle.evaluation.decomposition import Decomposition
+from evaluation_moodle.evaluation.graph_matcher import GraphMatchScorer, get_ged_plus_scores
+from evaluation_moodle.evaluation.sari_hook import get_sari
+from evaluation_moodle.evaluation.sequence_matcher import SequenceMatchScorer
+from evaluation_moodle.evaluation.normal_form.normalized_graph_matcher import NormalizedGraphMatchScorer
+import evaluation_moodle.evaluation.normal_form.normalization_rules as norm_rules
 
 
 pd.set_option('display.max_colwidth', -1)

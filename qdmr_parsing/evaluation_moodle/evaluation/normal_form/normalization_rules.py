@@ -10,7 +10,7 @@ from spacy.tokens.token import Token
 import _pickle as pk
 import logging
 
-from evaluation.decomposition import Decomposition
+from evaluation_moodle.evaluation.decomposition import Decomposition
 
 _logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 
 from time import sleep
 
-from utils.timeout import exit_after
+from evaluation_moodle.utils.timeout import exit_after
 
 
 @exit_after(5)

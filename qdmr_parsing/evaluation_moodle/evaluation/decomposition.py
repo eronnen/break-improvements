@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import re
 
-from utils.graph import get_graph_levels
+from evaluation_moodle.utils.graph import get_graph_levels
 
 class Decomposition(object):
     def __init__(self, decomposition_list):

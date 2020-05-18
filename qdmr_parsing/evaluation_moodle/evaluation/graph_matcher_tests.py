@@ -1,6 +1,6 @@
 
-from evaluation.decomposition import Decomposition, draw_decomposition_graph
-from evaluation.graph_matcher import AStarSearcher
+from evaluation_moodle.evaluation.decomposition import Decomposition, draw_decomposition_graph
+from evaluation_moodle.evaluation.graph_matcher import AStarSearcher
 
 
 examples = [
