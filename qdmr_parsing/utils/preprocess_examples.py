@@ -7,7 +7,7 @@ import re
 import ast
 import logging
 
-from utils.qdmr_identifier import split_decomposition, parse_step
+from utils.qdmr_identifier import split_decomposition, parse_step, get_step_seq2seq_repr
 from utils.break_dataset import is_noisy_data, NoiseDataException, WRONG_TRAINING_OPERATION_LIST
 
 
@@ -112,14 +112,8 @@ def process_target_mycopynet(target, operations, question_id):
     for i, step in enumerate(steps):
         if i > 0:
             target_new += " "
-        separator = f"@@SEP_{step.full_operator_name}@@"
-        target_new += f"{separator} "
-        for j, arg in enumerate(step.arguments):
-            if j > 0:
-                target_new += " , "
-            if arg.startswith('#'):
-                arg = re.sub(r'#([1-9][0-9]?)', r'@@\g<1>@@', arg)
-            target_new += f" {arg}"
+        step_text = get_step_seq2seq_repr(step)
+        target_new += step_text
 
     return target_new
 

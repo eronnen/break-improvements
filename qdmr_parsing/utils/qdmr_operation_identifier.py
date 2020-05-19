@@ -22,7 +22,7 @@ def extract_aggragate_from_qdmr_step(step):
             return "min"
     for aggregate in ['number of']:
         if aggregate in step:
-            return "count"
+            return "number of"
     for aggregate in ['sum', 'total']:
         if aggregate in step:
             return "sum"
@@ -129,6 +129,9 @@ class QDMROperationSelect(QDMROperation):
         self._sub_operator_name = None
         self._arguments = [step]
 
+    def generate_step_text(self):
+        return self.arguments[0]
+
 
 class QDMROperationFilter(QDMROperation):
     """
@@ -148,6 +151,9 @@ class QDMROperationFilter(QDMROperation):
         # condition might be empty
         self._arguments = [to_filter, filter_condition]
 
+    def generate_step_text(self):
+        return f"{self.arguments[0]} {self.arguments[1]}"
+
 
 class QDMROperationProject(QDMROperation):
     """
@@ -166,6 +172,10 @@ class QDMROperationProject(QDMROperation):
         projection = step.replace(ref, "#REF")
         self._arguments = [projection, ref]
         assert '' not in self._arguments
+
+    def generate_step_text(self):
+        assert "#REF" in self.arguments[0]
+        return self.arguments[0].replace("#REF", self.arguments[1])
 
 
 class QDMROperationAggregate(QDMROperation):
@@ -199,6 +209,14 @@ class QDMROperationAggregate(QDMROperation):
         self._arguments = [f"#{references[0]}"]
         assert '' not in self._arguments
 
+    def generate_step_text(self):
+        full_aggregate = self.sub_operator_name
+        if self.sub_operator_name in ['highest', 'largest', 'lowest', 'smallest', 'longest', 'shortest', 'first', 'last']:
+            full_aggregate = f"the {self.sub_operator_name}"
+        elif self.sub_operator_name in ['maximum', 'minimum', 'max', 'min', 'total', 'average', 'avg']:
+            full_aggregate = f"the {self.sub_operator_name} of"
+        return f"{full_aggregate} {self.arguments[0]}"
+
 
 class QDMROperationGroup(QDMROperation):
     """
@@ -221,6 +239,9 @@ class QDMROperationGroup(QDMROperation):
         arg_key = key.split()[-1] if len(key_refs) == 0 else f"#{key_refs[0]}"
         self._arguments = [arg_value, arg_key]
         assert '' not in self._arguments
+
+    def generate_step_text(self):
+        return f"{self.sub_operator_name} {self.arguments[0]} for each {self.arguments[1]}"
 
 
 class QDMROperationSuperlative(QDMROperation):
@@ -250,14 +271,16 @@ class QDMROperationSuperlative(QDMROperation):
         self._arguments = [f"#{entity_ref}", f"#{attribute_ref}"]
         assert '' not in self._arguments
 
+    def generate_step_text(self):
+        return f"{self.arguments[0]} where {self.arguments[1]} is {self.sub_operator_name}"
+
 
 class QDMROperationComparative(QDMROperation):
     """
     Example: "#1 where #2 is at most three"
     Example: "#3 where #4 is higher than #2"
     """
-    COMPARATIVES = ['same as', 'same as', 'higher than', 'larger than', 'smaller than', 'lower than',
-                    'less than',
+    COMPARATIVES = ['same as', 'same as', 'higher than', 'larger than', 'smaller than', 'lower than', 'less than',
                     'more than', 'less than', 'at least', 'at most', 'equal', ' is ', 'are', 'was', 'contain',
                     'include', 'has', 'have', 'end with', 'start with', 'ends with',
                     'starts with', 'begin']
@@ -284,7 +307,7 @@ class QDMROperationComparative(QDMROperation):
 
         for comp in self.COMPARATIVES:
             if comp in step:
-                self._sub_operator_name = comp
+                self._sub_operator_name = comp.strip()
                 if f'is the {comp}' in step:
                     expr = f'is the {comp}'
                 elif f'is {comp}' in step:
@@ -304,6 +327,9 @@ class QDMROperationComparative(QDMROperation):
 
         else:
             raise TypeError(f'{step} is not {self.operator_name}')
+
+    def generate_step_text(self):
+        return f"{self.arguments[0]} where {self.arguments[1]} {self.sub_operator_name} {self.arguments[2]}"
 
 
 class QDMROperationUnion(QDMROperation):
@@ -327,6 +353,9 @@ class QDMROperationUnion(QDMROperation):
         for ref in references:
             self._arguments.append(f"#{ref}")
         assert '' not in self._arguments
+
+    def generate_step_text(self):
+        return " ," .join(self.arguments)
 
 
 class QDMROperationIntersect(QDMROperation):
@@ -358,6 +387,10 @@ class QDMROperationIntersect(QDMROperation):
         self._arguments += [f"#{ref}" for ref in intersection_references]
         assert '' not in self._arguments
 
+    def generate_step_text(self):
+        intersection = " and ".join(self.arguments[1:])
+        return f"{self.arguments[0]} {self.sub_operator_name} {intersection}"
+
 
 class QDMROperationDiscard(QDMROperation):
     """
@@ -384,6 +417,9 @@ class QDMROperationDiscard(QDMROperation):
         self._arguments = [set_1, set_2]
         assert '' not in self._arguments
 
+    def generate_step_text(self):
+        return f"{self.arguments[0]} besides {self.arguments[1]}"
+
 
 class QDMROperationSort(QDMROperation):
     """
@@ -397,7 +433,6 @@ class QDMROperationSort(QDMROperation):
         return 'sort'
 
     def _init_from_raw_qdmr_step(self, step):
-        references = extract_references_from_qdmr_step(step)
         for expr in self.SORT_EXPRESSIONS:
             if expr in step:
                 sort_expr = expr
@@ -407,6 +442,9 @@ class QDMROperationSort(QDMROperation):
         objects, order = [frag.strip() for frag in step.split(sort_expr, 1)]
         self._arguments = [objects, order]
         assert '' not in self._arguments
+
+    def generate_step_text(self):
+        return f"{self.arguments[0]} sorted by {self.arguments[1]}"
 
 
 class QDMROperationBoolean(QDMROperation):  # TODO: sub operation here
@@ -442,8 +480,9 @@ class QDMROperationBoolean(QDMROperation):  # TODO: sub operation here
         if logical_op is not None:
             bool_expr = "false" if "false" in step else "true"
             sub_expressions = [f"#{ref}" for ref in references]
-            self._arguments = [logical_op, bool_expr] + sub_expressions
+            self._arguments = [bool_expr] + sub_expressions
             assert '' not in self._arguments
+            self._sub_operator_name = f"{logical_op} {boolean_prefix}"
             return
 
         if step.split()[1].startswith("#"):
@@ -452,29 +491,58 @@ class QDMROperationBoolean(QDMROperation):  # TODO: sub operation here
             condition = step.split(objects, 1)[1]
             self._arguments = [objects, condition]
             assert '' not in self._arguments
+            self._sub_operator_name = f"condition {boolean_prefix}"
             return
 
         if len(references) == 1 and not step.split()[1].startswith("#"):
             # projection boolean "if dinner is served on #1"
             objects = f"#{references[0]}"
-            condition = step.replace(objects, "#REF")
+            condition = step.split(' ', 1)[1].replace(objects, "#REF")
             self._arguments = [objects, condition]
             assert '' not in self._arguments
+            self._sub_operator_name = f"projection {boolean_prefix}"
             return
 
         if len(references) == 2:
             objects = f"#{references[0]}"
             prefix = step.split(objects, 1)[0].lower()
-            if "any" in prefix or "is there" in prefix \
-                    or "there is" in prefix or "there are" in prefix:
+            if "any" in prefix or "is there" in prefix or "there is" in prefix or "there are" in prefix:
                 # exists boolean "if any #2 are the same as #3"
+                if "any" in prefix:
+                    self._sub_operator_name = "if_exist any"
+                else:
+                    self._sub_operator_name = "if_exist there is"
                 condition = step.split(objects, 1)[1]
-                self._arguments = ["if_exist", objects, condition]
+                self._arguments = [objects, condition]
                 assert '' not in self._arguments
                 return
 
         self._arguments = [step.split(boolean_prefix, 1)[1]]
+        self._sub_operator_name = boolean_prefix
         assert '' not in self._arguments
+
+    def generate_step_text(self):
+        if "logical_and" in self.sub_operator_name or "logical_or" in self.sub_operator_name:
+            logical_op, prefix = self.sub_operator_name.split()
+            logical_op_word = "either" if logical_op == "logical_or" else "both"
+            bool_expr = self.arguments[0]
+            condition = " and ".join(self.arguments[1:])
+            return f"{prefix} {logical_op_word} {condition} are {bool_expr}"
+
+        if "condition " in self.sub_operator_name:
+            _, prefix = self.sub_operator_name.split()
+            return f"{prefix} {self.arguments[0]} {self.arguments[1]}"
+
+        if "projection " in self.sub_operator_name:
+            _, prefix = self.sub_operator_name.split()
+            condition = self.arguments[0].replace('#REF', self.arguments[1])
+            return f"{prefix} {condition}"
+
+        if "if_exist " in self.sub_operator_name:
+            _, prefix = self.sub_operator_name.split(' ', 1)
+            return f"if {prefix} {self.arguments[0]} {self.arguments[1]}"
+
+        return f"{self.sub_operator_name} {self.arguments[0]}"
 
 
 class QDMROperationArithmetic(QDMROperation):
@@ -482,7 +550,7 @@ class QDMROperationArithmetic(QDMROperation):
     Example: "difference of #3 and #5"
     """
     ARITHMETICS = ['sum of', 'difference between', 'difference of', 'multiplication of', 'division of',
-                              'sum', 'difference', 'multiplication', 'division']
+                   'sum', 'difference', 'multiplication', 'division']
 
     @property
     def operator_name(self):
@@ -512,6 +580,10 @@ class QDMROperationArithmetic(QDMROperation):
             refs = [f'#{ref}' for ref in references]
             self._arguments = refs
             assert '' not in self._arguments
+
+    def generate_step_text(self):
+        arguments = " and ".join(self.arguments)
+        return f"the {self.sub_operator_name} of {arguments}"
 
 
 class QDMROperationComparison(QDMROperation):  # TODO: sub operation
@@ -545,6 +617,10 @@ class QDMROperationComparison(QDMROperation):  # TODO: sub operation
         refs = [f'#{ref}' for ref in references]
         self._arguments = refs
         assert '' not in self._arguments
+
+    def generate_step_text(self):
+        arguments = ', '.join(self.arguments)
+        return f'which is {self.sub_operator_name} of {arguments}'
 
 
 QDMR_OPERATION = {
@@ -628,11 +704,24 @@ def parse_step(step_text):
     return potential_operators[0]
 
 
+def get_step_seq2seq_repr(step):
+    res = f"@@SEP_{step.full_operator_name}@@"
+    for j, arg in enumerate(step.arguments):
+        if j > 0:
+            res += " ,"
+        if arg.startswith('#'):
+            arg = re.sub(r'#([1-9][0-9]?)', r'@@\g<1>@@', arg)
+            arg = arg.replace('#REF', '@@REF@@')
+        res += f" {arg}"
+    return res
+
+
 def parse_step_from_mycopynet(step_text):
     seperator = step_text.split(' ')[0]
-    operation, sub_operation = re.match(r'@@SEP_([a-z]+)_?([a-z@]+)?', seperator)
+    operation, sub_operation = re.match(r'@@SEP_([a-z]+)_?([a-z@]+)?@@', seperator)
     if sub_operation:
         sub_operation = sub_operation.replace('@', ' ')
     step = QDMR_OPERATION[operation]()
     step._sub_operator_name = sub_operation
-    step._arguments = step_text.split(seperator)[1].split(' , ')
+    arguments_text = re.sub('@@([^@]*)@@', '#\g<1>', step_text.split(seperator)[1])
+    step._arguments = arguments_text.split(seperator)[1].split(' , ')

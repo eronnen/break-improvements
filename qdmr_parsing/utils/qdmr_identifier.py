@@ -1,5 +1,5 @@
 import re
-from .qdmr_operation_identifier import DELIMITER, parse_step
+from .qdmr_operation_identifier import DELIMITER, parse_step, parse_step_from_mycopynet, get_step_seq2seq_repr
 
 
 def split_decomposition(qdmr):
@@ -35,7 +35,7 @@ def split_decomposition(qdmr):
 
 def parse_mycopynet_qdmr(qdmr_text):
     steps = re.compile("@@SEP@@|@@SEP_\S+@@").split(qdmr_text)
-
+    return [parse_step_from_mycopynet(step) for step in steps]
 
 
 def parse_qdmr(qdmr_text):
