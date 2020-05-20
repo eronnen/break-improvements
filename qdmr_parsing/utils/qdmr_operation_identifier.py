@@ -291,7 +291,16 @@ class QDMROperationGroup(QDMROperation):
         assert '' not in self._arguments
 
     def generate_step_text(self):
-        return f"{self.sub_operator_name} {self.arguments[0]} for each {self.arguments[1]}"
+        operator_name = self.sub_operator_name
+        if operator_name == "max":
+            operator_name = "maximum of"
+        elif operator_name == "min":
+            operator_name = "minimum of"
+        elif operator_name == "sum":
+            operator_name = "sum of"
+        elif operator_name == "average":
+            operator_name = "average of"
+        return f"{operator_name} {self.arguments[0]} for each {self.arguments[1]}"
 
 
 class QDMROperationSuperlative(QDMROperation):

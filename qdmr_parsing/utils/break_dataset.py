@@ -18,6 +18,8 @@ DATA_BLACKLIST = [
     'DROP_train_nfl_1836_80da76d7-c5c4-434f-b140-fa1a7eb44107',  # second-largest?? why that -??
     'DROP_train_nfl_3433_3d010ebe-fd24-4ee1-bd0a-dee5f76f6c7a',
     'DROP_train_nfl_381_eb9bbe95-1169-421f-8e73-6845573a3dc0',
+    'SPIDER_train_3648',
+    'SPIDER_train_3898',
 ]
 
 # Data that it's operations in the csv is wrong. we keep it in the training data but ignore the operations that written.
@@ -376,6 +378,8 @@ WRONG_TRAINING_OPERATION_LIST = [
     'DROP_dev_history_2196_f09257e6-b661-4e27-90fa-71e2915f1eda',
     'DROP_dev_history_254_e8caaba6-6e7c-4170-af2c-f2faf35154ff',
     'DROP_dev_history_2626_1b9e0b8b-9075-467d-b249-e34e28f09f05',
+    'DROP_dev_history_1876_6336b16a-de5d-4be1-b17c-37f7a1a9b51f',
+    'DROP_dev_history_2390_29648c25-d6fb-4ab3-a8ed-c38e3e493968',
 ]
 
 
