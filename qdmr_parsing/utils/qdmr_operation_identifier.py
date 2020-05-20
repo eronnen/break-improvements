@@ -28,7 +28,7 @@ def extract_aggragate_from_qdmr_step(step):
             return "sum"
     for aggregate in ['avg', 'average', 'mean ']:
         if aggregate in step:
-            return "avg"
+            return "average"
     for aggregate in ['closer']:
         if aggregate in step:
             return "closer"
@@ -183,39 +183,89 @@ class QDMROperationAggregate(QDMROperation):
     Example: "lowest of #2"
     Example: "the number of #1"
     """
-    AGGREGATORS = ['number of', 'highest', 'largest', 'lowest', 'smallest', 'maximum', 'minimum',
-                   'max', 'min', 'sum', 'total', 'average', 'avg', 'mean of', 'first', 'last',
-                   'longest', 'shortest']
+    AGGREGATORS = ['number of', 'maximum', 'minimum',
+                   'max', 'min', 'sum', 'total', 'average', 'avg', 'mean of', 'first', 'last']
+    ORDER_AGGREGATORS = ['highest', 'largest', 'lowest', 'smallest', 'longest', 'shortest']
+    ORDER_PREFIXES = ['two', 'second', 'three', 'third', 'four', 'fourth', 'five', 'fifth', 'six', 'sixth', '2nd',
+                      '3rd', 'seventh', 'eighth', 'ninth', 'tenth', 'eleventh']
 
     @property
     def operator_name(self):
         return 'aggregate'
 
+    @staticmethod
+    def _is_aggr_valid_in_step(step, aggr):
+        if step.startswith('the '):
+            step = step.split('the ')[1].strip()
+
+        if step.startswith(aggr) or step.startswith(f"{aggr} of"):
+            return True
+
+        before = step.split(aggr)[0].strip()
+        non_meaningful_words = ["total", "combined", "count", "count the", "there", "next", "average", "which are",
+                                "which is", "who had", "who has", "top", "find the"]
+        if before in non_meaningful_words:
+            return True
+        for non_meaningful_word in non_meaningful_words:
+            if before.startswith(f"{non_meaningful_word} "):
+                before = before.split(f"{non_meaningful_word} ")[1].strip()
+
+        if before.isdigit():
+            return True
+
+        # it's not aggregate, the aggregate is a part of a Construct state
+        return False
+
     def _init_from_raw_qdmr_step(self, step):
         references = extract_references_from_qdmr_step(step)
         if len(references) != 1:
             raise TypeError(f'{step} is not {self.operator_name}')
-        for aggr in self.AGGREGATORS:
+        for aggr in self.AGGREGATORS + self.ORDER_AGGREGATORS:
             if f"{aggr} #" in step or f"{aggr} of #" in step:
-                if aggr == 'number of' and not step.startswith(aggr) and not step.startswith(f"the {aggr}"):
-                    before_number_of = step.split("number of")[0].strip()
-                    if before_number_of not in ["total", "the combined", "count", "count the", "the total", "there", "average"]:
-                        # it's not aggragate number of, here number of is a part of a Construct state
-                        continue
+                aggr_forms = [aggr]
+                if aggr in self.ORDER_AGGREGATORS:
+                    aggr_forms += [f'{prefix} {aggr}' for prefix in self.ORDER_PREFIXES]
+
+                if not any(self._is_aggr_valid_in_step(step, aggr_form) for aggr_form in aggr_forms):
+                    continue
+
                 self._sub_operator_name = aggr
+                self._arguments = []
+                if aggr in self.ORDER_AGGREGATORS:
+                    for prefix in self.ORDER_PREFIXES:
+                        if prefix in step.split(aggr, 1)[0]:
+                            if prefix == '2nd':
+                                prefix = 'second'
+                            elif prefix == '3rd':
+                                prefix = 'third'
+                            self._arguments = [prefix]
+                            break
+                    else:
+                        before_word = step.split(aggr, 1)[0].strip().split(' ')[-1]
+                        if before_word.isdigit():
+                            self._arguments = [before_word]
+                        else:
+                            self._arguments = ['']
                 break
         else:
             raise TypeError(f'{step} is not {self.operator_name}')
-        self._arguments = [f"#{references[0]}"]
-        assert '' not in self._arguments
+        self._arguments += [f"#{references[0]}"]
+        #assert '' not in self._arguments
 
     def generate_step_text(self):
+        arg_index = 0
         full_aggregate = self.sub_operator_name
-        if self.sub_operator_name in ['highest', 'largest', 'lowest', 'smallest', 'longest', 'shortest', 'first', 'last']:
+        if self.sub_operator_name in ['first', 'last']:
             full_aggregate = f"the {self.sub_operator_name}"
         elif self.sub_operator_name in ['maximum', 'minimum', 'max', 'min', 'total', 'average', 'avg']:
             full_aggregate = f"the {self.sub_operator_name} of"
-        return f"{full_aggregate} {self.arguments[0]}"
+        elif self.sub_operator_name in self.ORDER_AGGREGATORS:
+            arg_index += 1
+            if self.arguments[0]:
+                full_aggregate = f"the {self.arguments[0]} {self.sub_operator_name}"
+            else:
+                full_aggregate = f"the {self.sub_operator_name}"
+        return f"{full_aggregate} {self.arguments[arg_index]}"
 
 
 class QDMROperationGroup(QDMROperation):
@@ -249,8 +299,8 @@ class QDMROperationSuperlative(QDMROperation):
     Example: "#1 where #2 is highest"
     Example: "#1 where #2 is smallest"
     """
-    RAW_SUPERLATIVES = ['highest', 'largest', 'most', 'smallest', 'lowest', 'smallest', 'least',
-                   'longest', 'shortest', 'biggest']
+    RAW_SUPERLATIVES = ['highest', 'largest', 'most', 'smallest', 'lowest', 'smallest',
+                        'least', 'longest', 'shortest', 'biggest']
     SUPERLATIVES = [f"is {sup}" for sup in RAW_SUPERLATIVES] + [f"are {sup}" for sup in RAW_SUPERLATIVES]
 
     @property
@@ -619,7 +669,7 @@ class QDMROperationComparison(QDMROperation):  # TODO: sub operation
         assert '' not in self._arguments
 
     def generate_step_text(self):
-        arguments = ', '.join(self.arguments)
+        arguments = ' , '.join(self.arguments)
         return f'which is {self.sub_operator_name} of {arguments}'
 
 
@@ -723,5 +773,5 @@ def parse_step_from_mycopynet(step_text):
         sub_operation = sub_operation.replace('@', ' ')
     step = QDMR_OPERATION[operation]()
     step._sub_operator_name = sub_operation
-    arguments_text = re.sub('@@([^@]*)@@', '#\g<1>', step_text.split(seperator)[1])
+    arguments_text = re.sub('@@([^@]*)@@', r'#\g<1>', step_text.split(seperator)[1])
     step._arguments = arguments_text.split(seperator)[1].split(' , ')

@@ -14,6 +14,10 @@ DATA_BLACKLIST = [
     'COMQA_train_cluster-2081-2',
     'DROP_train_history_2583_522fbbf6-3fe5-4b86-a8a6-16425d4cea56',
     'DROP_train_nfl_3241_9c8e6054-2d5b-40b1-974d-24ffbed073ca',
+    'GEO_train_1',  # state with the largest - ??
+    'DROP_train_nfl_1836_80da76d7-c5c4-434f-b140-fa1a7eb44107',  # second-largest?? why that -??
+    'DROP_train_nfl_3433_3d010ebe-fd24-4ee1-bd0a-dee5f76f6c7a',
+    'DROP_train_nfl_381_eb9bbe95-1169-421f-8e73-6845573a3dc0',
 ]
 
 # Data that it's operations in the csv is wrong. we keep it in the training data but ignore the operations that written.
@@ -42,6 +46,10 @@ WRONG_TRAINING_OPERATION_LIST = [
     'CWQ_train_WebQTrn-3222_6a11413726183556d331fe26f3cc1904',
     'DROP_train_history_1312_33bd9772-2083-4dab-bd8b-adff46bb2fd4',
     'DROP_train_history_217_bbf959b4-1956-4c40-a988-75f012f69187',
+    'DROP_train_history_1836_d101816b-1b61-4300-bbba-a8197124f1a5',
+    'DROP_train_history_1925_a38434a6-3335-4698-80de-425799d78426',
+    'DROP_train_history_2540_343c45bc-64a5-479c-bc13-060347df8e8a',
+    'DROP_train_nfl_2853_c6e4a829-9656-4227-865b-d7fb06616b1c',
 
     # a lot of 'deparment number of' aggregate instead of project
     'SPIDER_train_1253',
