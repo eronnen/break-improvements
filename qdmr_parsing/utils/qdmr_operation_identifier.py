@@ -557,7 +557,7 @@ class QDMROperationBoolean(QDMROperation):  # TODO: sub operation here
             # projection boolean "if dinner is served on #1"
             objects = f"#{references[0]}"
             condition = step.split(' ', 1)[1].replace(objects, "#REF")
-            self._arguments = [objects, condition]
+            self._arguments = [condition, objects]
             assert '' not in self._arguments
             self._sub_operator_name = f"projection {boolean_prefix}"
             return
@@ -768,9 +768,8 @@ def get_step_seq2seq_repr(step):
     for j, arg in enumerate(step.arguments):
         if j > 0:
             res += " ,"
-        if arg.startswith('#'):
-            arg = re.sub(r'#([1-9][0-9]?)', r'@@\g<1>@@', arg)
-            arg = arg.replace('#REF', '@@REF@@')
+        arg = re.sub(r'#([1-9][0-9]?)', r'@@\g<1>@@', arg)
+        arg = arg.replace('#REF', '@@REF@@')
         res += f" {arg}"
     return res
 
