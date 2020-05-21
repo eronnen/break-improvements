@@ -20,7 +20,7 @@ class Seq2seqModel(ModelBase):
         archive_path = os.path.join(model_dir, 'model.tar.gz')
         assert os.path.exists(model_dir)
         assert os.path.exists(archive_path)
-        assert model_type in ["seq2seq", "copynet", "dynamic"]
+        assert model_type in ["seq2seq", "copynet", "dynamic", "mycopynet"]
 
         self.model_dir = model_dir
         self.model_type = model_type

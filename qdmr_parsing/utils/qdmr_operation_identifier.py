@@ -74,7 +74,7 @@ class QDMROperation(object):
     @property
     def full_operator_name(self):
         if self.sub_operator_name is not None:
-            return f'{self.operator_name}_{self.sub_operator_name.replace(" ", "@")}'
+            return f'{self.operator_name}_{self.sub_operator_name.strip().replace(" ", "@")}'
         return self.operator_name
 
     @property
@@ -245,12 +245,12 @@ class QDMROperationAggregate(QDMROperation):
                         if before_word.isdigit():
                             self._arguments = [before_word]
                         else:
-                            self._arguments = ['']
+                            self._arguments = ['@@none@@']
                 break
         else:
             raise TypeError(f'{step} is not {self.operator_name}')
         self._arguments += [f"#{references[0]}"]
-        #assert '' not in self._arguments
+        assert '' not in self._arguments
 
     def generate_step_text(self):
         arg_index = 0
@@ -525,7 +525,7 @@ class QDMROperationBoolean(QDMROperation):  # TODO: sub operation here
             raise TypeError(f'{step} is not {self.operator_name}')
         for expr in self.BOOLEAN_PREFIXES:
             if step.startswith(expr):
-                boolean_prefix = expr
+                boolean_prefix = expr.strip()
                 break
         else:
             raise TypeError(f'{step} is not {self.operator_name}')
@@ -776,10 +776,12 @@ def get_step_seq2seq_repr(step):
 
 def parse_step_from_mycopynet(step_text):
     seperator = step_text.split(' ')[0]
-    operation, sub_operation = re.match(r'@@SEP_([a-z]+)_?([a-z@]+)?@@', seperator)
+    operation, sub_operation = re.match(r'@@SEP_([a-z]+)_?([a-z@]+)?@@', seperator).groups()
     if sub_operation:
         sub_operation = sub_operation.replace('@', ' ')
     step = QDMR_OPERATION[operation]()
     step._sub_operator_name = sub_operation
-    arguments_text = re.sub('@@([^@]*)@@', r'#\g<1>', step_text.split(seperator)[1])
-    step._arguments = arguments_text.split(seperator)[1].split(' , ')
+    arguments_text = re.sub('@@([^@]*)@@', r'#\g<1>', step_text.split(seperator)[1]).strip()
+    step._arguments = arguments_text.split(' , ')
+    step._arguments = [arg.strip() for arg in step.arguments]
+    return step

@@ -13,6 +13,7 @@ from model.rule_based.copy_model import CopyModel
 from model.seq2seq.seq2seq_model import Seq2seqModel
 from model.seq2seq.mycopynet_model import MycopynetModel
 from utils.preprocess_examples import fix_references
+from utils.qdmr_identifier import mycopynet_qdmr_to_regular_qdmr
 
 # sys.path.append('..') below a workaround to solve the small dependency between the root
 # directories "qdmr_parsing" and "annotation_pipeline", which have been developed separately 
@@ -60,6 +61,13 @@ def main(args):
         else:
             allowed_tokens = None
             golds_index = 1
+
+        if args.model == "mycopynet":
+            golds_index = 2
+            for i, (_, mycopynet_gold) in enumerate(lines_parts):
+                # convert mycopynet gold to regular gold
+                regular_gold = mycopynet_qdmr_to_regular_qdmr(mycopynet_gold)
+                lines_parts[i].append(regular_gold)
 
         golds = [line_parts[golds_index].split('@@SEP@@') for line_parts in lines_parts]
         golds = [[s.strip() for s in g] for g in golds]
@@ -124,7 +132,7 @@ if __name__ == '__main__':
                         help='choose n random examples from input file')
     parser.add_argument('--question', type=str, help='question to decompose')
     parser.add_argument('--gold', type=str, help='for evaluation, gold decomposition of the given question')
-    parser.add_argument('--model', type=str, choices=["rule_based", "copy", "seq2seq", "copynet", "dynamic"],
+    parser.add_argument('--model', type=str, choices=["rule_based", "copy", "seq2seq", "copynet", "dynamic", "mycopynet"],
                         help='which model to run')
 
     parser.add_argument('--evaluate', action='store_true', default=False, help='evaluate decompositions')

@@ -34,10 +34,18 @@ def split_decomposition(qdmr):
 
 
 def parse_mycopynet_qdmr(qdmr_text):
-    steps = re.compile("@@SEP@@|@@SEP_\S+@@").split(qdmr_text)
+    steps = re.compile(r"(@@SEP@@|@@SEP_\S+@@)").split(qdmr_text)
+    steps = [s.strip() for s in steps if s.strip()]
+    assert len(steps) % 2 == 0
+    steps = [f"{steps[i*2]} {steps[i*2+1]}" for i in range(int(len(steps) / 2))]
     return [parse_step_from_mycopynet(step) for step in steps]
 
 
 def parse_qdmr(qdmr_text):
     steps = split_decomposition(qdmr_text)
     return [parse_step(step) for step in steps]
+
+
+def mycopynet_qdmr_to_regular_qdmr(mycopynet_qdmr):
+    qdmr = parse_mycopynet_qdmr(mycopynet_qdmr)
+    return ' @@SEP@@ '.join([s.generate_step_text() for s in qdmr])
