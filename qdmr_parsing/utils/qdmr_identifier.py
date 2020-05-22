@@ -48,4 +48,4 @@ def parse_qdmr(qdmr_text):
 
 def mycopynet_qdmr_to_regular_qdmr(mycopynet_qdmr):
     qdmr = parse_mycopynet_qdmr(mycopynet_qdmr)
-    return ' @@SEP@@ '.join([s.generate_step_text() for s in qdmr])
+    return ' @@SEP@@ '.join([s.generate_step_text_nicely() for s in qdmr])

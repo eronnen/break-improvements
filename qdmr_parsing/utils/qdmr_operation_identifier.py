@@ -113,6 +113,19 @@ class QDMROperation(object):
         """
         raise NotImplementedError()
 
+    def generate_step_text_nicely(self):
+        try:
+            return self.generate_step_text()
+        except (AssertionError, IndexError, AttributeError) as e:
+            return self._generate_step_text_nicely()
+
+    def _generate_step_text_nicely(self):
+        """
+        generate step text from the operation and the arguments without raising excpetion if the arguments/sub operations
+        are bad because MyCopynet is not perfect
+        """
+        raise NotImplementedError()
+
 
 class QDMROperationSelect(QDMROperation):
     """
@@ -176,6 +189,17 @@ class QDMROperationProject(QDMROperation):
     def generate_step_text(self):
         assert "#REF" in self.arguments[0]
         return self.arguments[0].replace("#REF", self.arguments[1])
+
+    def _generate_step_text_nicely(self):
+        if 0 == len(self.arguments):
+            return ""
+        elif 1 == len(self.arguments):
+            words = self.arguments[0].split()
+            if "#REF" in words:
+                words.remove("#REF")
+            return " ".join(words)
+        if "#REF" not in self.arguments[0]:
+            return f"{self.arguments[0]} of {self.arguments[1]}"
 
 
 class QDMROperationAggregate(QDMROperation):
@@ -260,12 +284,15 @@ class QDMROperationAggregate(QDMROperation):
         elif self.sub_operator_name in ['maximum', 'minimum', 'max', 'min', 'total', 'average', 'avg']:
             full_aggregate = f"the {self.sub_operator_name} of"
         elif self.sub_operator_name in self.ORDER_AGGREGATORS:
-            arg_index += 1
-            if self.arguments[0]:
+            if len(self.arguments) > 1 and self.arguments[0] != '@@none@@':
+                arg_index += 1
                 full_aggregate = f"the {self.arguments[0]} {self.sub_operator_name}"
             else:
                 full_aggregate = f"the {self.sub_operator_name}"
         return f"{full_aggregate} {self.arguments[arg_index]}"
+
+    def _generate_step_text_nicely(self):
+        raise NotImplementedError()
 
 
 class QDMROperationGroup(QDMROperation):
@@ -776,7 +803,7 @@ def get_step_seq2seq_repr(step):
 
 def parse_step_from_mycopynet(step_text):
     seperator = step_text.split(' ')[0]
-    operation, sub_operation = re.match(r'@@SEP_([a-z]+)_?([a-z@]+)?@@', seperator).groups()
+    operation, sub_operation = re.match(r'@@SEP_([a-z]+)_?([a-z@_]+)?@@', seperator).groups()
     if sub_operation:
         sub_operation = sub_operation.replace('@', ' ')
     step = QDMR_OPERATION[operation]()
