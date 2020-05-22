@@ -382,12 +382,13 @@ class QDMROperationComparative(QDMROperation):
         if not (2 <= len(references) <= 3 and 'where' in step
                 and (step.startswith('#') or step.startswith('the #'))):
             raise TypeError(f'{step} is not {self.operator_name}')
-        if 'where at least one' in step:
+        if 'where at least one' in step or 'where at least some of' in step:
             # special comarative structure here
             if ' is ' not in step:
                 raise TypeError(f'{step} is not {self.operator_name} - weird at least one sentence')
             to_filter = f"#{references[0]}"
-            comparative = step.split('where at least one', 1)[1]
+            split_phrase = 'where at least some of' if 'where at least some of' in step else 'where at least one'
+            comparative = step.split(split_phrase, 1)[1]
             attribute_1, attribute_2 = comparative.split(' is ', 1)
             attribute_1 = "one " + attribute_1
             self._arguments = [to_filter, attribute_1, attribute_2]
