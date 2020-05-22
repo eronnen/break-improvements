@@ -287,8 +287,9 @@ class QDMROperationAggregate(QDMROperation):
         elif self.sub_operator_name in ['maximum', 'minimum', 'max', 'min', 'total', 'average', 'avg']:
             full_aggregate = f"the {self.sub_operator_name} of"
         elif self.sub_operator_name in self.ORDER_AGGREGATORS:
-            if len(self.arguments) > 1 and self.arguments[0] != '@@none@@':
+            if len(self.arguments) > 1:
                 arg_index += 1
+            if len(self.arguments) > 1 and '@@none@@' not in self.arguments[0]:
                 full_aggregate = f"the {self.arguments[0]} {self.sub_operator_name}"
             else:
                 full_aggregate = f"the {self.sub_operator_name}"
@@ -320,7 +321,7 @@ class QDMROperationGroup(QDMROperation):
         self._arguments = [arg_value, arg_key]
 
     def generate_step_text(self):
-        operator_name = self.sub_operator_name
+        operator_name = self.sub_operator_name or ""
         if operator_name == "max":
             operator_name = "maximum of"
         elif operator_name == "min":
@@ -329,7 +330,7 @@ class QDMROperationGroup(QDMROperation):
             operator_name = "sum of"
         elif operator_name == "average":
             operator_name = "average of"
-        return f"{operator_name} {self.arguments[0]} for each {self.arguments[1]}"
+        return f"{operator_name} {self.arguments[0]} for each {self.arguments[1]}".strip()
 
 
 class QDMROperationSuperlative(QDMROperation):
