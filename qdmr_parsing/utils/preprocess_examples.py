@@ -7,7 +7,7 @@ import re
 import ast
 import logging
 
-from utils.qdmr_identifier import split_decomposition, parse_step, get_step_seq2seq_repr
+from utils.qdmr_identifier import split_decomposition, parse_step, get_step_seq2seq_repr, mycopynet_qdmr_to_regular_qdmr
 from utils.break_dataset import is_noisy_data, NoiseDataException, WRONG_TRAINING_OPERATION_LIST
 
 

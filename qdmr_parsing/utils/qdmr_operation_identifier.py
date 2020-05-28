@@ -370,7 +370,7 @@ class QDMROperationComparative(QDMROperation):
     """
     COMPARATIVES = ['same as', 'same as', 'higher than', 'larger than', 'smaller than', 'lower than', 'less than',
                     'more than', 'less than', 'at least', 'at most', 'equal', ' is ', 'are', 'was', 'contain',
-                    'include', 'has', 'have', 'end with', 'start with', 'ends with',
+                    'include', 'include', 'has', 'have', 'end with', 'start with', 'ends with',
                     'starts with', 'begin']
 
     @property
@@ -432,6 +432,11 @@ class QDMROperationComparative(QDMROperation):
         if self.sub_operator_name == "at_least":
             return f"{self.arguments[0]} where at least {self.arguments[1]} is {self.arguments[2]}"
         return f"{self.arguments[0]} where {self.arguments[1]} is {self.sub_operator_name} {self.arguments[2]}"
+
+    def generate_step_text_nicely(self):
+        if 2 == len(self.arguments):
+            self._arguments.append(self.arguments[0])
+        return self.generate_step_text()
 
 
 class QDMROperationUnion(QDMROperation):

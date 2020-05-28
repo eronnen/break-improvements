@@ -3,7 +3,7 @@ import json
 import os
 
 from allennlp.models.archival import load_archive
-from allennlp.service.predictors import Predictor
+from allennlp.predictors import Predictor
 
 from evaluation.decomposition import Decomposition, get_decomposition_from_tokens
 from model.model_base import ModelBase
