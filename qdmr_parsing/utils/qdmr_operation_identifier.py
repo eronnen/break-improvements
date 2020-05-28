@@ -370,7 +370,7 @@ class QDMROperationComparative(QDMROperation):
     """
     COMPARATIVES = ['same as', 'same as', 'higher than', 'larger than', 'smaller than', 'lower than', 'less than',
                     'more than', 'less than', 'at least', 'at most', 'equal', ' is ', 'are', 'was', 'contain',
-                    'include', 'include', 'has', 'have', 'end with', 'start with', 'ends with',
+                    'include', 'includes', 'has', 'have', 'end with', 'start with', 'ends with',
                     'starts with', 'begin']
 
     @property
