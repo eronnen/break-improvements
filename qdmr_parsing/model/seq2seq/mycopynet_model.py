@@ -1,6 +1,6 @@
 from model.seq2seq.seq2seq_model import Seq2seqModel
 from evaluation.decomposition import Decomposition, get_decomposition_from_tokens
-from qdmr_parsing.utils.qdmr_identifier import mycopynet_qdmr_to_regular_qdmr
+from utils.qdmr_identifier import mycopynet_qdmr_to_regular_qdmr
 
 
 class MycopynetModel(Seq2seqModel):
@@ -13,6 +13,7 @@ class MycopynetModel(Seq2seqModel):
                 pred_text = pred["predicted_tokens"]
 
             qdmr_text = mycopynet_qdmr_to_regular_qdmr(' '.join(pred_text))
-            decompositions.append(get_decomposition_from_tokens(qdmr_text))
+            qdmr_text_list = qdmr_text.split(' ')
+            decompositions.append(get_decomposition_from_tokens(qdmr_text_list))
 
         return decompositions

@@ -7,7 +7,9 @@ import random
 import re
 import sys
 
-from evaluation.decomposition import Decomposition, get_decomposition_from_tokens
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+from evaluation.decomposition import Decomposition
 from model.rule_based.rule_based_model import RuleBasedModel
 from model.rule_based.copy_model import CopyModel
 from model.seq2seq.seq2seq_model import Seq2seqModel
@@ -18,7 +20,7 @@ from utils.qdmr_identifier import mycopynet_qdmr_to_regular_qdmr
 # sys.path.append('..') below a workaround to solve the small dependency between the root
 # directories "qdmr_parsing" and "annotation_pipeline", which have been developed separately 
 # but are under the same GitHub repository.'''
-sys.path.append('..')
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 from annotation_pipeline.utils.app_store_generation import valid_annotation_tokens
 
 
