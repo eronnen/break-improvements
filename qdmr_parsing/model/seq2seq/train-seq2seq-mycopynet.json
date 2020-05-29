@@ -19,7 +19,7 @@
     "source_embedder": {
       "tokens": {
         "type": "embedding",
-        "embedding_dim": 150,
+        "embedding_dim": 450,
         "vocab_namespace": "source_tokens",
         "trainable": true
       }
@@ -27,8 +27,8 @@
 
     "encoder": {
       "type": "lstm",
-      "input_size": 150,
-      "hidden_size": 150,
+      "input_size": 450,
+      "hidden_size": 450,
       "num_layers": 5,
       "dropout": 0.2
     },
@@ -51,7 +51,7 @@
     "cuda_device": 0,
     "optimizer": {
       "type": "adam",
-      "lr": 0.01
+      "lr": 0.001
     }
   }
 }
