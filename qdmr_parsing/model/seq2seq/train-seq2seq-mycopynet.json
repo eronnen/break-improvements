@@ -29,7 +29,7 @@
       "type": "lstm",
       "input_size": 450,
       "hidden_size": 450,
-      "num_layers": 5,
+      "num_layers": 2,
       "dropout": 0.2
     },
 
