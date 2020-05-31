@@ -37,7 +37,12 @@ def parse_mycopynet_qdmr(qdmr_text):
     steps = re.compile(r"(@@SEP@@|@@SEP_\S+@@)").split(qdmr_text)
     steps = [s.strip() for s in steps if s.strip()]
     if not len(steps) % 2 == 0:
-        steps = steps[:-1]
+        for i in range(len(steps) - 1):
+            if re.search(r"(@@SEP@@|@@SEP_\S+@@)", steps[i]) and re.search(r"(@@SEP@@|@@SEP_\S+@@)", steps[i+1]):
+                steps.pop(i)
+                break
+        else:
+            raise RuntimeError()
     steps = [f"{steps[i*2]} {steps[i*2+1]}" for i in range(int(len(steps) / 2))]
     return [parse_step_from_mycopynet(step) for step in steps]
 

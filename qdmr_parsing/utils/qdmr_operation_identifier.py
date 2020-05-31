@@ -433,7 +433,7 @@ class QDMROperationComparative(QDMROperation):
             return f"{self.arguments[0]} where at least {self.arguments[1]} is {self.arguments[2]}"
         return f"{self.arguments[0]} where {self.arguments[1]} is {self.sub_operator_name} {self.arguments[2]}"
 
-    def generate_step_text_nicely(self):
+    def _generate_step_text_nicely(self):
         if 2 == len(self.arguments):
             self._arguments.append(self.arguments[0])
         return self.generate_step_text()
@@ -642,6 +642,17 @@ class QDMROperationBoolean(QDMROperation):  # TODO: sub operation here
 
         return f"{self.sub_operator_name} {self.arguments[0]}"
 
+    def _generate_step_text_nicely(self):
+        if "projection " in self.sub_operator_name:
+            refs = re.findall(r'#(\d+)', self.arguments[0])
+            if 1 == len(self.arguments) and '#REF' in self.arguments[0] and 1 <= len(refs):
+                _, prefix = self.sub_operator_name.split()
+                condition_words = self.arguments[0].split()
+                condition_words = [w for w in condition_words if not re.match(r"#(\d+)", w)]
+                condition_words[condition_words.index('#REF')] = f"#{refs[0]}"
+                condition = ' '.join(condition_words)
+                return f"{prefix} {condition}"
+        raise NotImplementedError()
 
 class QDMROperationArithmetic(QDMROperation):
     """
