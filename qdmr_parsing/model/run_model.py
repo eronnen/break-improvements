@@ -4,18 +4,23 @@ import json
 import os
 import pandas as pd
 import random
+import re
 import sys
 
-from evaluation.decomposition import Decomposition, get_decomposition_from_tokens
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+from evaluation.decomposition import Decomposition
 from model.rule_based.rule_based_model import RuleBasedModel
 from model.rule_based.copy_model import CopyModel
 from model.seq2seq.seq2seq_model import Seq2seqModel
+from model.seq2seq.mycopynet_model import MycopynetModel
 from utils.preprocess_examples import fix_references
+from utils.qdmr_identifier import mycopynet_qdmr_to_regular_qdmr
 
 # sys.path.append('..') below a workaround to solve the small dependency between the root
 # directories "qdmr_parsing" and "annotation_pipeline", which have been developed separately 
 # but are under the same GitHub repository.'''
-sys.path.append('..')
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 from annotation_pipeline.utils.app_store_generation import valid_annotation_tokens
 
 
@@ -29,14 +34,19 @@ def init_model(args):
         model = CopyModel()
     elif args.model == "rule_based":
         model = RuleBasedModel()
+    elif args.model == "mycopynet":
+        model = MycopynetModel(args.model_dir, args.model, True, args.cuda_device)
     else:
-        model = Seq2seqModel(args.model_dir, args.model, args.model == "copynet",
+        model = Seq2seqModel(args.model_dir, args.model, args.model in ["copynet", "mycopynet"],
                              args.cuda_device)
 
     return model
 
 
 def main(args):
+    # initialize a model
+    model = init_model(args)
+
     # load data
     if args.input_file:
         with open(args.input_file, 'r', encoding='utf-8') as fd:
@@ -54,6 +64,13 @@ def main(args):
             allowed_tokens = None
             golds_index = 1
 
+        if args.model == "mycopynet":
+            golds_index = 2
+            for i, (_, mycopynet_gold) in enumerate(lines_parts):
+                # convert mycopynet gold to regular gold
+                regular_gold = mycopynet_qdmr_to_regular_qdmr(mycopynet_gold)
+                lines_parts[i].append(regular_gold)
+
         golds = [line_parts[golds_index].split('@@SEP@@') for line_parts in lines_parts]
         golds = [[s.strip() for s in g] for g in golds]
 
@@ -66,9 +83,6 @@ def main(args):
             allowed_tokens = [str(valid_tokens)]
         else:
             allowed_tokens = None
-
-    # initialize a model
-    model = init_model(args)
 
     # load pre-computed predictions if provided, otherwise,
     # decompose questions using the model.
@@ -104,7 +118,7 @@ def validate_args(args):
         assert args.gold
 
     # seq2seq model options.
-    if args.model in ["seq2seq", "copynet", "dynamic"]:
+    if args.model in ["seq2seq", "copynet", "dynamic", "mycopynet"]:
         assert os.path.exists(args.model_dir)
 
 
@@ -120,7 +134,7 @@ if __name__ == '__main__':
                         help='choose n random examples from input file')
     parser.add_argument('--question', type=str, help='question to decompose')
     parser.add_argument('--gold', type=str, help='for evaluation, gold decomposition of the given question')
-    parser.add_argument('--model', type=str, choices=["rule_based", "copy", "seq2seq", "copynet", "dynamic"],
+    parser.add_argument('--model', type=str, choices=["rule_based", "copy", "seq2seq", "copynet", "dynamic", "mycopynet"],
                         help='which model to run')
 
     parser.add_argument('--evaluate', action='store_true', default=False, help='evaluate decompositions')

@@ -3,7 +3,7 @@ import json
 import os
 
 from allennlp.models.archival import load_archive
-from allennlp.service.predictors import Predictor
+from allennlp.predictors import Predictor
 
 from evaluation.decomposition import Decomposition, get_decomposition_from_tokens
 from model.model_base import ModelBase
@@ -20,7 +20,7 @@ class Seq2seqModel(ModelBase):
         archive_path = os.path.join(model_dir, 'model.tar.gz')
         assert os.path.exists(model_dir)
         assert os.path.exists(archive_path)
-        assert model_type in ["seq2seq", "copynet", "dynamic"]
+        assert model_type in ["seq2seq", "copynet", "dynamic", "mycopynet"]
 
         self.model_dir = model_dir
         self.model_type = model_type

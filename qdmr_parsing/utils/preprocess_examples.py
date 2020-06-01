@@ -4,13 +4,18 @@ import json
 import pandas as pd
 import os
 import re
+import ast
+import logging
+
+from utils.qdmr_identifier import split_decomposition, parse_step, get_step_seq2seq_repr, mycopynet_qdmr_to_regular_qdmr
+from utils.break_dataset import is_noisy_data, NoiseDataException, WRONG_TRAINING_OPERATION_LIST
 
 
 def get_example_split_set_from_id(question_id):
     return question_id.split('_')[1]
 
 
-def preprocess_input_file(input_file, lexicon_file=None, model=None):
+def preprocess_input_file(input_file, lexicon_file=None, model=None, model_type='seq2seq'):
     if lexicon_file:
         lexicon = [
             json.loads(line)
@@ -20,6 +25,7 @@ def preprocess_input_file(input_file, lexicon_file=None, model=None):
         lexicon = None
 
     examples = []
+    process_target = process_target_mycopynet if model_type == 'mycopynet' else process_target_seq2seq
     with open(input_file, encoding='utf-8') as f:
         lines = csv.reader(f)
         header = next(lines, None)
@@ -28,10 +34,16 @@ def preprocess_input_file(input_file, lexicon_file=None, model=None):
 
         for i, line in enumerate(lines):
             assert len(line) == num_fields, "read {} fields, and not {}".format(len(line), num_fields)
-            question_id, source, target, _, split = line
+            question_id, source, target, operations, split = line
             split = get_example_split_set_from_id(question_id)
 
-            target = process_target(target)
+            if target:
+                operations = ast.literal_eval(operations)
+                try:
+                    target = process_target(target.lower(), operations, question_id)
+                except NoiseDataException:
+                    logging.warning(f"skipping noise data sentence: \"{target}\"")
+                    continue
             example = {'annotation_id': '', 'question_id': question_id,
                        'source': source, 'target': target, 'split': split}
             if model:
@@ -50,7 +62,7 @@ def fix_references(string):
     return re.sub(r'#([1-9][0-9]?)', '@@\g<1>@@', string)
 
 
-def process_target(target):
+def process_target_seq2seq(target, *args, **kwargs):
     # replace multiple whitespaces with a single whitespace.
     target_new = ' '.join(target.split())
 
@@ -63,6 +75,47 @@ def process_target(target):
     target_new = fix_references(target_new)
 
     return target_new.strip()
+
+
+def process_target_mycopynet(target, operations, question_id):
+    """Returns the target that 'mycopynet' model needs to learn.
+
+    Parameters
+    ----------
+    target : str
+        the original target in the original QDMR format.
+
+    Returns
+    -------
+    str
+        The target in the format which 'mycopynet' needs to learn
+
+    """
+    if is_noisy_data(target, operations, question_id):
+        raise NoiseDataException()
+
+    target = ' '.join(target.split())
+    step_texts = split_decomposition(target)
+
+    # sometimes there is a useless 'return;' in the middle of the target (???)'
+    operations = [operation for operation, step_text in zip(operations, step_texts) if step_text != '']
+    step_texts = [step_text for step_text in step_texts if step_text != '']
+
+    assert len(step_texts) == len(operations)
+    steps = [parse_step(step) for step in step_texts]
+    assert len(steps) == len(operations)
+    if question_id not in WRONG_TRAINING_OPERATION_LIST:
+        for step, expected_operation in zip(steps, operations):
+            assert step.operator_name == expected_operation, f"wrong operation predicted \"{step.operator_name}\"" \
+                                                             f" instead of \"{expected_operation}\""
+    target_new = ''
+    for i, step in enumerate(steps):
+        if i > 0:
+            target_new += " "
+        step_text = get_step_seq2seq_repr(step)
+        target_new += step_text
+
+    return target_new
 
 
 def write_output_files(base_path, examples, dynamic_vocab):
@@ -104,8 +157,9 @@ def sample_examples(examples, configuration):
 
 
 def main(args):
-    examples = preprocess_input_file(args.input_file, args.lexicon_file)
-    print(f"processed {len(examples)} examples.")
+    model_type = "mycopynet" if args.mycopynet else "seq2seq"
+    examples = preprocess_input_file(args.input_file, lexicon_file=args.lexicon_file, model_type=model_type)
+    print(f"processed {len(examples)} examples. out of {len(open(args.input_file, encoding='utf-8').readlines())}")
     if args.sample:
         examples = sample_examples(examples, args.sample)
         print(f"left with {len(examples)} examples after sampling.")
@@ -130,6 +184,7 @@ if __name__ == '__main__':
     parser.add_argument('--sample', type=json.loads, default="{}",
                         help='json-formatted string with dataset down-sampling configuration, '
                              'for example: {"ATIS": 0.5, "CLEVR": 0.2}')
+    parser.add_argument('--mycopynet', action='store_true', help="\"mycopynet\" preprocessing")
     args = parser.parse_args()
     assert os.path.exists(args.input_file)
     assert os.path.exists(args.output_dir)
